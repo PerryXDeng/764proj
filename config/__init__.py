@@ -1,4 +1,5 @@
 from config.main_config import MainConfig
 
-def get_config():
+
+def getConfig():
     return MainConfig
