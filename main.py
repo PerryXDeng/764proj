@@ -1,7 +1,7 @@
 from config import getConfig
 from dataload import getDataLoader
-from ttPartAE.trainAE import trainAE
-from ttPartAE.testAE import testAE
+from model_partae.trainAE import trainAE
+from model_partae.testAE import testAE
 
 
 def main():
