@@ -68,6 +68,7 @@ class DecoderIM(nn.Module):
         out = self.layer6(out)
         return out
 
+
 # IMNET based AE for training part based encoder
 class IMNetPart(nn.Module):
     def __init__(self, nLayersE, efDim, nLayersD, dfDim, zDim):

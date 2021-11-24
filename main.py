@@ -1,25 +1,32 @@
 from config import getConfig
 from dataload import getDataLoader
-from networks import encoderTest, encoderTrain
+from ttPartAE.trainAE import trainAE
+from ttPartAE.testAE import testAE
 
 
 def main():
     # load config parameters here
-    config = getConfig()
+    configMain = getConfig()
 
+    configMain.mode = "train"
     # if training selected
-    # here the autoencoder will be trained
-    if config.mode == "train":
-        shuffle = True
-        trainData = getDataLoader(config.mode, config, shuffle)
-        encoderTrain(trainData)
+    # here the autoencoder will be trained for each part
+    if configMain.mode == "train":
+        shuffle = False
+        useAllPts = True
+        trainData = getDataLoader(configMain.mode, configMain, useAllPts, shuffle)
+        configMain.mode = "val"
+        valData = getDataLoader(configMain.mode, configMain, useAllPts, shuffle)
+        trainAE(configMain, trainData, valData)
 
+    configMain.mode = "test"
     # if testing selected
     # here the encoder is used to generate latent code only, the decoder isnt used
-    if config.mode == "test":
+    if configMain.mode == "test":
         shuffle = False
-        testData = getDataLoader(config.mode, config, shuffle)
-        encoderTest(testData)
+        useAllPts = True
+        testData = getDataLoader(configMain.mode, configMain, useAllPts, shuffle)
+        testAE(configMain, testData)
 
 
 if __name__ == '__main__':

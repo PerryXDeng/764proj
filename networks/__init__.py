@@ -1,9 +1,7 @@
-import torch
+from networks.partAE import IMNetPart
 
 
-def encoderTrain(data):
-    return False
-
-
-def encoderTest(data):
-    return False
+def getNetwork(name, config):
+    if name == "partae":
+        net = IMNetPart(config.nLayersE, config.efDim, config.nLayersD, config.dfDim, config.zDim)
+    return net
