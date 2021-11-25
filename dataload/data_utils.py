@@ -22,7 +22,7 @@ def getIdsMode(mode):
     return listIds
 
 
-#load part wise information
+# load part wise information
 def loadH5Partwise(path, partInd, resolution=64, rescale=True):
     with h5py.File(path, 'r') as data_dict:
         nParts = data_dict.attrs['n_parts']
@@ -32,4 +32,3 @@ def loadH5Partwise(path, partInd, resolution=64, rescale=True):
     if rescale:
         dataPoints = dataPoints / resolution
     return nParts, partVoxel, dataPoints, dataVals  # , scale, translation
-

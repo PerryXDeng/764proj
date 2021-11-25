@@ -1,4 +1,6 @@
 import numpy as np
+from networks import getNetwork
+import torch.nn as nn
 
 
 class TrainClock(object):
@@ -28,8 +30,17 @@ class TrainClock(object):
         self.step = clock_dict['step']
 
 
+# get the reqwuired network from
+def buildNet(name, config):
+    net = getNetwork(name, config)
+    if config.parallel:
+        net = nn.DataParallel(net)
+    net = net.cuda()
+    return net
+
+
 def projVoxelXYZ(voxels, concat=False):
-    #projecting the outline or max in each direction on its specific axis
+    # projecting the outline or max in each direction on its specific axis
     img1 = np.clip(np.amax(voxels, axis=0) * 256, 0, 255).astype(np.uint8)
     img2 = np.clip(np.amax(voxels, axis=1) * 256, 0, 255).astype(np.uint8)
     img3 = np.clip(np.amax(voxels, axis=2) * 256, 0, 255).astype(np.uint8)
@@ -54,3 +65,9 @@ def sdf2voxel(points, values, voxDim=64):
 def visualizeSDF(points, values, concat=False, voxDim=64):
     voxels = sdf2voxel(points, values, voxDim)
     return projVoxelXYZ(voxels, concat=concat)
+
+
+def cycle(iterable):
+    while True:
+        for x in iterable:
+            yield x

@@ -1,37 +1,94 @@
 from networks import getNetwork
 import torch.nn as nn
-from agents.base import BaseAgent
 from utils import visualizeSDF, projVoxelXYZ
 import torch
+from utils import TrainClock
+import torch.optim as optim
+from tensorboardX import SummaryWriter
+import os
+from utils import buildNet
 
 
-class AgentPartAE(BaseAgent):
+# Agent class for Part based Auto Encoder
+class AgentPartAE(object):
     def __init__(self, config):
-        super(AgentPartAE, self).__init__(config)
+        # get the relevant information from config
+        self.logDir = config.logDir
+        self.modelDir = config.modelDir
+        self.clock = TrainClock()
+        self.batchSize = config.batchSize
+
         self.ptsBatchSize = config.ptsBatchSize
         self.resolution = config.resolution
         self.batchSize = config.batchSize
+
+        # set the loss function
         self.criterion = nn.MSELoss().cuda()
 
-    def buildNet(self, config):
-        net = getNetwork('partae', config)
-        if config.parallel:
-            net = nn.DataParallel(net)
-        net = net.cuda()
-        return net
+        # get the relevant network
+        self.net = buildNet('partae', config)
 
+        # set optimizer
+        self.optimizer = optim.Adam(self.net.parameters(), config.lr)
+        self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, config.lrStep)
+
+        # set tensorboard writers
+        self.trainTB = SummaryWriter(os.path.join(self.logDir, 'train.events'))
+        self.valTB = SummaryWriter(os.path.join(self.logDir, 'val.events'))
+
+    # define the forward function
     def forward(self, data):
-        input_vox3d = data['vox3d'].cuda()  # (shape_batch_size, 1, dim, dim, dim)
+        # get the voxel data, the corresponding points and their values
+        inVox3d = data['vox3d'].cuda()  # (shape_batch_size, 1, dim, dim, dim)
         points = data['points'].cuda()  # (shape_batch_size, points_batch_size, 3)
-        target_sdf = data['values'].cuda()  # (shape_batch_size, points_batch_size, 1)
+        targetSDF = data['values'].cuda()  # (shape_batch_size, points_batch_size, 1)
 
-        output_sdf = self.net(points, input_vox3d)
+        # outSDF is the output of decoder from IMNET
+        outSDF = self.net(points, inVox3d)
+        # get the loss between out and target
+        loss = self.criterion(outSDF, targetSDF)
 
-        loss = self.criterion(output_sdf, target_sdf)
-        return output_sdf, {"mse": loss}
+        return outSDF, {"mse": loss}
+
+    def updateNetwork(self, loss_dict):
+        """update network by back propagation"""
+        loss = sum(loss_dict.values())
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
+    # keep a record of the losses
+    def recordLosses(self, loss_dict, mode='train'):
+        lossVals = {k: v.item() for k, v in loss_dict.items()}
+
+        # record loss to tensorboard
+        tb = self.trainTB if mode == 'train' else self.valTB
+        for k, v in lossVals.items():
+            tb.add_scalar(k, v, self.clock.step)
+
+    # define the train function for one step
+    def trainFunc(self, data):
+        self.net.train()
+        outputs, losses = self.forward(data)
+
+        self.updateNetwork(losses)
+        self.recordLosses(losses, 'train')
+
+        return outputs, losses
+
+    def valFunc(self, data):
+        """one step of validation"""
+        self.net.eval()
+
+        with torch.no_grad():
+            outputs, losses = self.forward(data)
+
+        self.recordLosses(losses, 'validation')
+
+        return outputs, losses
 
     def visualizeCurBatch(self, data, mode, outputs=None):
-        tb = self.train_tb if mode == 'train' else self.val_tb
+        tb = self.trainTB if mode == 'train' else self.valTB
 
         parts_voxel = data['vox3d'][0][0].numpy()
         data_points64 = data['points'][0].numpy() * self.resolution
@@ -44,3 +101,50 @@ class AgentPartAE(BaseAgent):
         tb.add_image("voxel", torch.from_numpy(voxel_proj), self.clock.step, dataformats='HW')
         tb.add_image("target", torch.from_numpy(target), self.clock.step, dataformats='HW')
         tb.add_image("output", torch.from_numpy(output), self.clock.step, dataformats='HW')
+
+    def saveChkPt(self, name=None):
+        """save checkpoint during training for future restore"""
+        if name is None:
+            save_path = os.path.join(self.modelDir, "ckpt_epoch{}.pth".format(self.clock.epoch))
+            print("Checkpoint saved at {}".format(save_path))
+        else:
+            save_path = os.path.join(self.modelDir, "{}.pth".format(name))
+        if isinstance(self.net, nn.DataParallel):
+            torch.save({
+                'clock': self.clock.makeChkPt(),
+                'model_state_dict': self.net.module.cpu().state_dict(),
+                'optimizer_state_dict': self.optimizer.state_dict(),
+                'scheduler_state_dict': self.scheduler.state_dict(),
+            }, save_path)
+        else:
+            torch.save({
+                'clock': self.clock.makeChkPt(),
+                'model_state_dict': self.net.cpu().state_dict(),
+                'optimizer_state_dict': self.optimizer.state_dict(),
+                'scheduler_state_dict': self.scheduler.state_dict(),
+            }, save_path)
+        self.net.cuda()
+
+    def loadChkPt(self, name=None):
+        """load checkpoint from saved checkpoint"""
+        name = name if name == 'latest' else "ckpt_epoch{}".format(name)
+        load_path = os.path.join(self.modelDir, "{}.pth".format(name))
+        if not os.path.exists(load_path):
+            raise ValueError("Checkpoint {} not exists.".format(load_path))
+
+        checkpoint = torch.load(load_path)
+        print("Checkpoint loaded from {}".format(load_path))
+
+        if isinstance(self.net, nn.DataParallel):
+            self.net.module.load_state_dict(checkpoint['model_state_dict'])
+        else:
+            self.net.load_state_dict(checkpoint['model_state_dict'])
+
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        self.clock.restoreChkPt(checkpoint['clock'])
+
+    # record and update learning rate
+    def updateLearningRate(self):
+        self.trainTB.add_scalar('learning_rate', self.optimizer.param_groups[-1]['lr'], self.clock.epoch)
+        self.scheduler.step(self.clock.epoch)

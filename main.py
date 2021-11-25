@@ -19,14 +19,13 @@ def main():
         valData = getDataLoader(configMain.mode, configMain, useAllPts, shuffle)
         trainAE(configMain, trainData, valData)
 
-    configMain.mode = "test"
     # if testing selected
     # here the encoder is used to generate latent code only, the decoder isnt used
     if configMain.mode == "test":
         shuffle = False
         useAllPts = True
         testData = getDataLoader(configMain.mode, configMain, useAllPts, shuffle)
-        testAE(configMain, testData)
+        #testAE(configMain, testData)
 
 
 if __name__ == '__main__':

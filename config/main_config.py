@@ -6,11 +6,11 @@ class MainConfig(object):
         self.srcDir = "data/Chair"
         self.ptsBatchSize = 24
         self.useAllPts = False
-        self.resolution = 64
+        self.resolution = 16
         self.mode = "train"
         self.batchSize = 40
-        self.numWorkers = 1
-        self.epochs = 250
+        self.numWorkers = 8
+        self.epochs = 5
         self.cont = False
         self.ckpt = 0
 
@@ -22,5 +22,11 @@ class MainConfig(object):
         self.vis = False
         self.visFrequency = 10
         self.valFrequency = 10
+        self.saveFrequency = 50
         self.saveDir = "result/partae"
-        self.saveFormat = "mesh"
+        self.saveFormat = "voxel"
+        self.logDir = "log/"
+        self.modelDir = ""
+        self.parallel = False
+        self.lr = 5e-4
+        self.lrStep = 230
