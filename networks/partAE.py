@@ -12,13 +12,14 @@ class EncoderIM(nn.Module):
 
         inChannels = 1
         outChannels = fDim
+
         for i in range(nLayers - 1):
             model.append(nn.Conv3d(inChannels, outChannels, kernel_size=(4, 4, 4), stride=(2, 2, 2), padding=1,
                                    bias=False))  # FIXME: in IM-NET implementation, they use bias before BN
             model.append(nn.BatchNorm3d(num_features=outChannels, momentum=0.1))  # FIXME: momentum value
             model.append(nn.LeakyReLU(0.02))
 
-            in_channels = outChannels
+            inChannels = outChannels
             outChannels *= 2
 
         model.append(nn.Conv3d(outChannels // 2, zDim, kernel_size=(4, 4, 4), stride=(1, 1, 1), padding=0))
@@ -35,7 +36,6 @@ class EncoderIM(nn.Module):
 # Decoder Structure
 class DecoderIM(nn.Module):
     def __init__(self, nLayers, fDim, zDim):
-        """With skip connection"""
         super(DecoderIM, self).__init__()
         in_channels = zDim + 3
         out_channels = fDim * (2 ** (nLayers - 2))
@@ -80,8 +80,9 @@ class IMNetPart(nn.Module):
     def forward(self, points, vox3d):
         shape_batch_size = points.size(0)
         point_batch_size = points.size(1)
-        z = self.encoder(vox3d)  # (shape_batch_size, z_dim)
+        z = self.encoder(vox3d)  # (1,64,64,64)
         # z = torch.cat([z, affine], dim=1)
+
         batch_z = z.unsqueeze(1).repeat((1, point_batch_size, 1)).view(-1, z.size(1))
         batch_points = points.view(-1, 3)
 

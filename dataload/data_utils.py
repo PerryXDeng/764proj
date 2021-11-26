@@ -6,7 +6,7 @@ import numpy as np
 SplitDir = "data/train_val_test_split"
 
 
-# loads IDs for models
+# loads IDs for models for modes = train,val or test
 def getIdsMode(mode):
     filename = os.path.join(SplitDir, "{}.{}.json".format("Chair", mode))
     if not os.path.exists(filename):

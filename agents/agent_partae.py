@@ -1,4 +1,3 @@
-from networks import getNetwork
 import torch.nn as nn
 from utils import visualizeSDF, projVoxelXYZ
 import torch
@@ -17,18 +16,16 @@ class AgentPartAE(object):
         self.modelDir = config.modelDir
         self.clock = TrainClock()
         self.batchSize = config.batchSize
-
         self.ptsBatchSize = config.ptsBatchSize
         self.resolution = config.resolution
-        self.batchSize = config.batchSize
-
-        # set the loss function
+        self.chkpDir = config.chkpDir
+        # set the loss function as MSE
         self.criterion = nn.MSELoss().cuda()
 
         # get the relevant network
         self.net = buildNet('partae', config)
 
-        # set optimizer
+        # set ADAM optimizer
         self.optimizer = optim.Adam(self.net.parameters(), config.lr)
         self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, config.lrStep)
 
@@ -45,21 +42,21 @@ class AgentPartAE(object):
 
         # outSDF is the output of decoder from IMNET
         outSDF = self.net(points, inVox3d)
-        # get the loss between out and target
+        # get the loss between outSDF and targetSDF
         loss = self.criterion(outSDF, targetSDF)
 
         return outSDF, {"mse": loss}
 
-    def updateNetwork(self, loss_dict):
-        """update network by back propagation"""
-        loss = sum(loss_dict.values())
+    # back propogation
+    def updateNetwork(self, losses):
+        loss = sum(losses.values())
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
     # keep a record of the losses
-    def recordLosses(self, loss_dict, mode='train'):
-        lossVals = {k: v.item() for k, v in loss_dict.items()}
+    def recordLosses(self, losses, mode='train'):
+        lossVals = {k: v.item() for k, v in losses.items()}
 
         # record loss to tensorboard
         tb = self.trainTB if mode == 'train' else self.valTB
@@ -76,10 +73,11 @@ class AgentPartAE(object):
 
         return outputs, losses
 
+    # validation for one step
     def valFunc(self, data):
-        """one step of validation"""
         self.net.eval()
 
+        #   dont update gradients in this step
         with torch.no_grad():
             outputs, losses = self.forward(data)
 
@@ -87,48 +85,61 @@ class AgentPartAE(object):
 
         return outputs, losses
 
+    # record and update learning rate
+    def updateLearningRate(self):
+        self.trainTB.add_scalar('learning_rate', self.optimizer.param_groups[-1]['lr'], self.clock.epoch)
+        self.scheduler.step(self.clock.epoch)
+
+    # visualizing current batch and storing output
     def visualizeCurBatch(self, data, mode, outputs=None):
         tb = self.trainTB if mode == 'train' else self.valTB
 
-        parts_voxel = data['vox3d'][0][0].numpy()
-        data_points64 = data['points'][0].numpy() * self.resolution
-        data_values64 = data['values'][0].numpy()
-        output_sdf = outputs[0].detach().cpu().numpy()
+        # get voxel, points and their values (sdf) from data
+        partsVoxel = data['vox3d'][0][0].numpy()
+        dataPts64 = data['points'][0].numpy() * self.resolution
+        dataVals64 = data['values'][0].numpy()
+        # sdf value from the part ae net
+        outSDF = outputs[0].detach().cpu().numpy()
 
-        target = visualizeSDF(data_points64, data_values64, concat=True, voxDim=self.resolution)
-        output = visualizeSDF(data_points64, output_sdf, concat=True, voxDim=self.resolution)
-        voxel_proj = projVoxelXYZ(parts_voxel, concat=True)
-        tb.add_image("voxel", torch.from_numpy(voxel_proj), self.clock.step, dataformats='HW')
+        target = visualizeSDF(dataPts64, dataVals64, concat=True, voxDim=self.resolution)
+        output = visualizeSDF(dataPts64, outSDF, concat=True, voxDim=self.resolution)
+        voxProj = projVoxelXYZ(partsVoxel, concat=True)
+        tb.add_image("voxel", torch.from_numpy(voxProj), self.clock.step, dataformats='HW')
         tb.add_image("target", torch.from_numpy(target), self.clock.step, dataformats='HW')
         tb.add_image("output", torch.from_numpy(output), self.clock.step, dataformats='HW')
 
-    def saveChkPt(self, name=None):
-        """save checkpoint during training for future restore"""
-        if name is None:
-            save_path = os.path.join(self.modelDir, "ckpt_epoch{}.pth".format(self.clock.epoch))
-            print("Checkpoint saved at {}".format(save_path))
+    # -- Check Points --- #
+
+    # Saving checkpoint
+    def saveChkPt(self, pathIn=None):
+
+        if pathIn is None:
+            savePath = os.path.join(self.chkpDir, "ckpt_epoch{}.pth".format(self.clock.epoch))
+            print("Checkpoint saved at {}".format(savePath))
         else:
-            save_path = os.path.join(self.modelDir, "{}.pth".format(name))
+            savePath = os.path.join(self.chkpDir, "{}.pth".format(pathIn))
+
         if isinstance(self.net, nn.DataParallel):
             torch.save({
                 'clock': self.clock.makeChkPt(),
                 'model_state_dict': self.net.module.cpu().state_dict(),
                 'optimizer_state_dict': self.optimizer.state_dict(),
                 'scheduler_state_dict': self.scheduler.state_dict(),
-            }, save_path)
+            }, savePath)
         else:
             torch.save({
                 'clock': self.clock.makeChkPt(),
                 'model_state_dict': self.net.cpu().state_dict(),
                 'optimizer_state_dict': self.optimizer.state_dict(),
                 'scheduler_state_dict': self.scheduler.state_dict(),
-            }, save_path)
+            }, savePath)
+
         self.net.cuda()
 
-    def loadChkPt(self, name=None):
-        """load checkpoint from saved checkpoint"""
-        name = name if name == 'latest' else "ckpt_epoch{}".format(name)
-        load_path = os.path.join(self.modelDir, "{}.pth".format(name))
+    # loading Check Point
+    def loadChkPt(self, pathIn=None):
+        pathIn = pathIn if pathIn == 'latest' else "ckpt_epoch{}".format(pathIn)
+        load_path = os.path.join(self.chkpDir, "{}.pth".format(pathIn))
         if not os.path.exists(load_path):
             raise ValueError("Checkpoint {} not exists.".format(load_path))
 
@@ -144,7 +155,4 @@ class AgentPartAE(object):
         self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
         self.clock.restoreChkPt(checkpoint['clock'])
 
-    # record and update learning rate
-    def updateLearningRate(self):
-        self.trainTB.add_scalar('learning_rate', self.optimizer.param_groups[-1]['lr'], self.clock.epoch)
-        self.scheduler.step(self.clock.epoch)
+

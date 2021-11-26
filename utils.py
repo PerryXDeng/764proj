@@ -1,7 +1,9 @@
 import numpy as np
 from networks import getNetwork
 import torch.nn as nn
-
+import mcubes as libmcubes
+import trimesh
+import os
 
 class TrainClock(object):
     def __init__(self):
@@ -51,6 +53,16 @@ def projVoxelXYZ(voxels, concat=False):
         return wholeImg
     else:
         return img1, img2, img3
+
+
+def voxel2mesh(voxels, config, export=False,name='mymodel'):
+    vertices, triangles = libmcubes.marching_cubes(voxels, 0)
+    mesh = trimesh.Trimesh(vertices, triangles)
+    if export:
+        savePath = os.path.join(config.saveDir, "model_{}.stl".format(name))
+        mesh.export(savePath)
+
+    return mesh
 
 
 def sdf2voxel(points, values, voxDim=64):

@@ -4,7 +4,7 @@ from model_partae.trainAE import trainAE
 from model_partae.testAE import testAE
 
 
-def main():
+def mainAE():
     # load config parameters here
     configMain = getConfig()
 
@@ -24,9 +24,10 @@ def main():
     if configMain.mode == "test":
         shuffle = False
         useAllPts = True
+        configMain.cont = True
         testData = getDataLoader(configMain.mode, configMain, useAllPts, shuffle)
-        #testAE(configMain, testData)
+        testAE(configMain, testData)
 
 
 if __name__ == '__main__':
-    main()
+    mainAE()
