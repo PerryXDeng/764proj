@@ -5,6 +5,7 @@ import mcubes as libmcubes
 import trimesh
 import os
 
+
 class TrainClock(object):
     def __init__(self):
         self.epoch = 1
@@ -55,9 +56,15 @@ def projVoxelXYZ(voxels, concat=False):
         return img1, img2, img3
 
 
-def voxel2mesh(voxels, config, export=False,name='mymodel'):
+
+def voxel2mesh(voxels, config, export=False, name='mymodel', translation=None, size=None, affine=None, voxDim=64,idx=None):
     vertices, triangles = libmcubes.marching_cubes(voxels, 0)
+
+    if affine is not None:
+        vertices = vertices * affine[0, :] + affine[1, :] * voxDim
+
     mesh = trimesh.Trimesh(vertices, triangles)
+
     if export:
         savePath = os.path.join(config.saveDir, "model_{}.stl".format(name))
         mesh.export(savePath)

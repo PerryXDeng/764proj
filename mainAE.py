@@ -8,7 +8,7 @@ def mainAE():
     # load config parameters here
     configMain = getConfig()
 
-    configMain.mode = "train"
+    configMain.mode = "test"
     # if training selected
     # here the autoencoder will be trained for each part
     if configMain.mode == "train":
@@ -25,6 +25,7 @@ def mainAE():
         shuffle = False
         useAllPts = True
         configMain.cont = True
+        configMain.batchSize = 1
         testData = getDataLoader(configMain.mode, configMain, useAllPts, shuffle)
         testAE(configMain, testData)
 

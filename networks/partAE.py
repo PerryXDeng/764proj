@@ -89,3 +89,5 @@ class IMNetPart(nn.Module):
         out = self.decoder(batch_points, batch_z)
         out = out.view((shape_batch_size, point_batch_size, -1))
         return out
+
+
