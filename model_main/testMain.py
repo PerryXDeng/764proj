@@ -4,20 +4,20 @@ import numpy as np
 import torch
 import h5py
 from dataload import get_dataloader
-from agents.pqnet import MainNetwork
+from agents.pqnet import PQNET
 
 
 def reconstruct(config):
     """run reconstruction"""
     # create the whole framwork
-    pqnet = MainNetwork(config)
+    pqnet = PQNET(config)
 
     # create dataloader
     test_loader = get_dataloader('test', config)
 
     # output dest
-    save_dir = os.path.join(config.exp_dir, "results/rec-ckpt-{}-{}-p{}".format(config.ckpt, config.format,
-                                                                                int(config.by_part)))
+    save_dir = os.path.join("results/seq2seq/rec-ckpt-{}-{}-p{}".format(config.ckpt, config.format,
+                                                                                int(config.byPart)))
     # ensure_dir(save_dir)
 
     # run testing
@@ -26,7 +26,7 @@ def reconstruct(config):
         data_id = data['path'][0].split('/')[-1].split('.')[0]
         with torch.no_grad():
             pqnet.reconstruct(data)
-            output_shape = pqnet.generate_shape(format=config.format, by_part=config.by_part)
+            output_shape = pqnet.generate_shape(format=config.format, by_part=config.byPart)
 
         save_output(output_shape, data_id, save_dir, format=config.format)
 
@@ -34,10 +34,10 @@ def reconstruct(config):
 def encode(config):
     """encode each data to shape latent space """
     # create the whole framwork
-    pqnet = MainNetwork(config)
+    pqnet = PQNET(config)
 
     # output dest
-    save_dir = os.path.join(config.exp_dir, "results/enc-ckpt-{}".format(config.ckpt))
+    save_dir = os.path.join("results/seq2seq/enc-ckpt-{}".format(config.ckpt))
     # ensure_dir(save_dir)
 
     phases = ['train', 'val', 'test']
@@ -60,7 +60,7 @@ def encode(config):
 def decode(config):
     """decode given latent codes to final shape"""
     # create the whole framwork
-    pqnet = MainNetwork(config)
+    pqnet = PQNET(config)
 
     # load source h5 file
     with h5py.File(config.fake_z_path, 'r') as fp:
@@ -68,8 +68,8 @@ def decode(config):
 
     # output dest
     fake_name = config.fake_z_path.split('/')[-1].split('.')[0]
-    save_dir = os.path.join(config.exp_dir, "results/{}-{}-p{}".format(fake_name, config.format,
-                                                                       int(config.by_part)))
+    save_dir = os.path.join("results/seq2seq/{}-{}-p{}".format(fake_name, config.format,
+                                                                       int(config.byPart)))
     # ensure_dir(save_dir)
 
     # decoding
@@ -81,7 +81,7 @@ def decode(config):
         z = torch.tensor(z, dtype=torch.float32).unsqueeze(1).cuda()
         with torch.no_grad():
             pqnet.decode_seq(z)
-            output_shape = pqnet.generate_shape(format=config.format, by_part=config.by_part)
+            output_shape = pqnet.generate_shape(format=config.format, by_part=config.byPart)
 
         data_id = "%04d" % i
         save_output(output_shape, data_id, save_dir, format=config.format)

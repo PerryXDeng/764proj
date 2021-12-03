@@ -145,6 +145,9 @@ class Seq2SeqAgent(object):
         bbox_proj = drawPartsBBOXVoxel(affine_output)
         tb.add_image("bbox_output", torch.from_numpy(bbox_proj), self.clock.step, dataformats='HW')
 
+    def update_teacher_forcing_ratio(self):
+        self.teacher_forcing_ratio *= self.teacher_decay
+
     # -- Check Points --- #
 
     # Saving checkpoint
