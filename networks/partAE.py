@@ -15,8 +15,8 @@ class EncoderIM(nn.Module):
 
         for i in range(nLayers - 1):
             model.append(nn.Conv3d(inChannels, outChannels, kernel_size=(4, 4, 4), stride=(2, 2, 2), padding=1,
-                                   bias=False))  # FIXME: in IM-NET implementation, they use bias before BN
-            model.append(nn.BatchNorm3d(num_features=outChannels, momentum=0.1))  # FIXME: momentum value
+                                   bias=False))
+            model.append(nn.BatchNorm3d(num_features=outChannels, momentum=0.1))
             model.append(nn.LeakyReLU(0.02))
 
             inChannels = outChannels

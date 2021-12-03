@@ -10,10 +10,10 @@ class MainConfig(object):
         self.mode = "train"
 
         self.ptsBatchSize = 16 * 16 * 16 * 4
-        self.batchSize = 1
+        self.batchSize = 40
 
         self.numWorkers = 8
-        self.epochs = 10
+        self.epochs = 250
         self.cont = False
 
         self.nLayersE = 5  # 5

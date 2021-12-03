@@ -37,7 +37,8 @@ class MainDataset(Dataset):
 
     def __getitem__(self, index):
         shapePath, partInd = self.partsInfo[index]
-        nParts, partVoxel, dataPts, dataVals, scales, translations, size = loadH5Partwise(shapePath, partInd, self.resolution)
+        nParts, partVoxel, dataPts, dataVals, scales, translations, size = loadH5Partwise(shapePath, partInd,
+                                                                                          self.resolution)
         affine = np.concatenate([translations, size])
 
         # shuffle selected points
@@ -62,7 +63,7 @@ class MainDataset(Dataset):
                 "scales": scales,
                 "translations": translations,
                 "size": size,
-                "affine": affine }
+                "affine": affine}
 
     def __len__(self):
         return len(self.partsInfo)

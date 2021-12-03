@@ -108,6 +108,8 @@ class AgentPartAE(object):
         tb.add_image("target", torch.from_numpy(target), self.clock.step, dataformats='HW')
         tb.add_image("output", torch.from_numpy(output), self.clock.step, dataformats='HW')
 
+        return voxProj, target, output
+
     # -- Check Points --- #
 
     # Saving checkpoint
