@@ -1,4 +1,4 @@
-from agents import getAgent
+from agents import get_agent
 import numpy as np
 from utils import cycle, sdf2voxel, voxel2mesh
 import trimesh
@@ -160,7 +160,7 @@ def reconstruct(agent, config, testData):
 
 def testAE(config, testData):
     # encode and decode the test files only
-    agent = getAgent("partae", config)
+    agent = get_agent("partae", config)
 
     # save them as mesh
     config.saveDir = "results/partae"

@@ -1,5 +1,5 @@
 from config import getConfig
-from dataload import getDataLoader
+from dataload import get_dataloader
 from model_partae.trainAE import trainAE
 from model_partae.testAE import testAE
 
@@ -14,9 +14,9 @@ def mainAE():
     if configMain.mode == "train":
         shuffle = False
         useAllPts = True
-        trainData = getDataLoader(configMain.mode, configMain, useAllPts, shuffle)
+        trainData = get_dataloader(configMain.mode, configMain, useAllPts, shuffle)
         configMain.mode = "val"
-        valData = getDataLoader(configMain.mode, configMain, useAllPts, shuffle)
+        valData = get_dataloader(configMain.mode, configMain, useAllPts, shuffle)
         trainAE(configMain, trainData, valData)
 
     # if testing selected
@@ -26,7 +26,7 @@ def mainAE():
         useAllPts = True
         configMain.cont = True
         configMain.batchSize = 1
-        testData = getDataLoader(configMain.mode, configMain, useAllPts, shuffle)
+        testData = get_dataloader(configMain.mode, configMain, useAllPts, shuffle)
         testAE(configMain, testData)
 
 

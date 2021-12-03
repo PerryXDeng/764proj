@@ -1,5 +1,5 @@
 import numpy as np
-from networks import getNetwork
+from networks import get_network
 import torch.nn as nn
 import mcubes as libmcubes
 import trimesh
@@ -35,7 +35,7 @@ class TrainClock(object):
 
 # get the reqwuired network from
 def buildNet(name, config):
-    net = getNetwork(name, config)
+    net = get_network(name, config)
     if config.parallel:
         net = nn.DataParallel(net)
     net = net.cuda()

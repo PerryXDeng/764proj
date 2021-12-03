@@ -1,4 +1,4 @@
-from agents import getAgent
+from agents import get_agent
 from tqdm import tqdm
 from collections import OrderedDict
 from utils import cycle
@@ -6,7 +6,7 @@ from utils import cycle
 
 def trainAE(config, trainData, valData):
     # load the correct agent
-    agent = getAgent("partae", config)
+    agent = get_agent("partae", config)
 
     # load checkpoint if needed
     if config.cont:
