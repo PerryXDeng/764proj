@@ -1,5 +1,8 @@
 # config class
 # eventually take config values using command line args
+import os
+
+
 class MainConfig(object):
     def __init__(self):
         self.minNumParts = 2
@@ -9,6 +12,9 @@ class MainConfig(object):
         self.useAllPts = False
         self.resolution = 16
         self.mode = "train"
+
+        self.threshold = 0.5
+        self.upsamplingSteps = 0
 
         self.ptsBatchSize = 16 * 16 * 16 * 4
         self.batchSize = 40
@@ -42,5 +48,7 @@ class MainConfig(object):
         self.lr = 5e-4
         self.lrStep = 230
 
-        self.rec = True # to reconstruct test data
-        self.byPart = False # output shape is segmented into parts or not
+        self.rec = True  # to reconstruct test data
+        self.byPart = False  # output shape is segmented into parts or not
+
+        self.partae_modelpath = os.path.join("chkt_dir/partae", "latest.pth")

@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import h5py
 from dataload import get_dataloader
-from agents.agent_main import MainNetwork
+from agents.pqnet import MainNetwork
 
 
 def reconstruct(config):

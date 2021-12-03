@@ -5,19 +5,36 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence, pad_packed_sequence
 from utils import drawPartsBBOXVoxel
 from networks import get_network, set_requires_grad
+from tensorboardX import SummaryWriter
+from utils import TrainClock
 
 
 class Seq2SeqAgent(object):
     def __init__(self, config):
         super(Seq2SeqAgent, self).__init__(config)
+        self.logDir = config.logDir
         self.stop_weight = config.stop_weight
         self.boxparam_size = config.boxparam_size
         self.teacher_decay = config.teacher_decay
         self.teacher_forcing_ratio = 0.5
-
+        self.net = self.buildNet(config)
         self.bce_min = torch.tensor(1e-3, dtype=torch.float32, requires_grad=True).cuda()
+        self.clock = TrainClock()
+        self.chkpDir = config.chkpDir
 
-    def build_net(self, config):
+        self.optimizer = optim.Adam(self.net.parameters(), config.lr)
+        self.scheduler = optim.lr_scheduler.ExponentialLR(self.optimizer, config.lr_decay)
+
+        self.rec_criterion = nn.MSELoss(reduction='none').cuda()
+        self.bce_criterion = nn.BCEWithLogitsLoss(reduction='none').cuda()
+
+        self.teacher_forcing_ratio *= self.teacher_decay
+
+        # set tensorboard writers
+        self.trainTB = SummaryWriter(os.path.join(self.logDir, 'train.events'))
+        self.valTB = SummaryWriter(os.path.join(self.logDir, 'val.events'))
+
+    def buildNet(self, config):
         # restore part encoder
         part_imnet = get_network('part_ae', config)
         if not os.path.exists(config.partae_modelpath):
@@ -33,25 +50,52 @@ class Seq2SeqAgent(object):
         net = get_network('seq2seq', config).cuda()
         return net
 
-    def set_optimizer(self, config):
-        self.optimizer = optim.Adam(self.net.parameters(), config.lr)
-        self.scheduler = optim.lr_scheduler.ExponentialLR(self.optimizer, config.lr_decay)
+    # back propogation
+    def updateNetwork(self, losses):
+        loss = sum(losses.values())
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
-    def set_loss_function(self):
-        self.rec_criterion = nn.MSELoss(reduction='none').cuda()
-        self.bce_criterion = nn.BCEWithLogitsLoss(reduction='none').cuda()
+    # keep a record of the losses
+    def recordLosses(self, losses, mode='train'):
+        lossVals = {k: v.item() for k, v in losses.items()}
 
-    def update_teacher_forcing_ratio(self):
-        self.teacher_forcing_ratio *= self.teacher_decay
+        # record loss to tensorboard
+        tb = self.trainTB if mode == 'train' else self.valTB
+        for k, v in lossVals.items():
+            tb.add_scalar(k, v, self.clock.step)
 
-    def update_learning_rate(self):
+    # define the train function for one step
+    def trainFunc(self, data):
+        self.net.train()
+        outputs, losses = self.forward(data)
+
+        self.updateNetwork(losses)
+        self.recordLosses(losses, 'train')
+
+        return outputs, losses
+
+    def updateLearningRate(self):
         """record and update learning rate"""
-        self.train_tb.add_scalar('learning_rate', self.optimizer.param_groups[-1]['lr'], self.clock.epoch)
+        self.trainTB.add_scalar('learning_rate', self.optimizer.param_groups[-1]['lr'], self.clock.epoch)
         if self.clock.epoch < 2000:
             self.scheduler.step(self.clock.epoch)
 
+    # validation for one step
+    def valFunc(self, data):
+        self.net.eval()
+
+        #   dont update gradients in this step
+        with torch.no_grad():
+            outputs, losses = self.forward(data)
+
+        self.recordLosses(losses, 'validation')
+
+        return outputs, losses
+
     def forward(self, data):
-        row_vox3d = data['vox3d']   # (B, T, 1, vox_dim, vox_dim, vox_dim)
+        row_vox3d = data['vox3d']  # (B, T, 1, vox_dim, vox_dim, vox_dim)
         batch_size, max_n_parts, vox_dim = row_vox3d.size(0), row_vox3d.size(1), row_vox3d.size(-1)
         batch_n_parts = data['n_parts']
         target_stop = data['sign'].cuda()
@@ -62,7 +106,7 @@ class Seq2SeqAgent(object):
 
         batch_vox3d = row_vox3d.view(-1, 1, vox_dim, vox_dim, vox_dim).cuda()
         with torch.no_grad():
-            part_geo_features = self.part_encoder(batch_vox3d)   # (B * T, z_dim)
+            part_geo_features = self.part_encoder(batch_vox3d)  # (B * T, z_dim)
             part_geo_features = part_geo_features.view(batch_size, max_n_parts, -1).transpose(0, 1)
             cond_pack = cond.unsqueeze(0).repeat(affine_input.size(0), 1, 1)
 
@@ -86,7 +130,7 @@ class Seq2SeqAgent(object):
         return output_seq, {"code": code_rec_loss, "param": param_rec_loss, "stop": bce_loss}
 
     def visualize_batch(self, data, mode, outputs=None, **kwargs):
-        tb = self.train_tb if mode == 'train' else self.val_tb
+        tb = self.trainTB if mode == 'train' else self.valTB
 
         n_parts = data['n_parts'][0]
         affine_input = data['affine_input'][:n_parts, 0].detach().cpu().numpy()
@@ -100,3 +144,50 @@ class Seq2SeqAgent(object):
         tb.add_image("bbox_target", torch.from_numpy(bbox_proj), self.clock.step, dataformats='HW')
         bbox_proj = drawPartsBBOXVoxel(affine_output)
         tb.add_image("bbox_output", torch.from_numpy(bbox_proj), self.clock.step, dataformats='HW')
+
+    # -- Check Points --- #
+
+    # Saving checkpoint
+    def saveChkPt(self, pathIn=None):
+
+        if pathIn is None:
+            savePath = os.path.join(self.chkpDir, "ckpt_epoch{}.pth".format(self.clock.epoch))
+            print("Checkpoint saved at {}".format(savePath))
+        else:
+            savePath = os.path.join(self.chkpDir, "{}.pth".format(pathIn))
+
+        if isinstance(self.net, nn.DataParallel):
+            torch.save({
+                'clock': self.clock.makeChkPt(),
+                'model_state_dict': self.net.module.cpu().state_dict(),
+                'optimizer_state_dict': self.optimizer.state_dict(),
+                'scheduler_state_dict': self.scheduler.state_dict(),
+            }, savePath)
+        else:
+            torch.save({
+                'clock': self.clock.makeChkPt(),
+                'model_state_dict': self.net.cpu().state_dict(),
+                'optimizer_state_dict': self.optimizer.state_dict(),
+                'scheduler_state_dict': self.scheduler.state_dict(),
+            }, savePath)
+
+        self.net.cuda()
+
+    # loading Check Point
+    def loadChkPt(self, pathIn=None):
+        pathIn = pathIn if pathIn == 'latest' else "ckpt_epoch{}".format(pathIn)
+        load_path = os.path.join(self.chkpDir, "{}.pth".format(pathIn))
+        if not os.path.exists(load_path):
+            raise ValueError("Checkpoint {} not exists.".format(load_path))
+
+        checkpoint = torch.load(load_path)
+        print("Checkpoint loaded from {}".format(load_path))
+
+        if isinstance(self.net, nn.DataParallel):
+            self.net.module.load_state_dict(checkpoint['model_state_dict'])
+        else:
+            self.net.load_state_dict(checkpoint['model_state_dict'])
+
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        self.clock.restoreChkPt(checkpoint['clock'])

@@ -11,6 +11,7 @@ def main():
     # create dataloader
     config.mode = "train"
     config.byPart = True
+    config.chkpDir = "chkt_dir/seq2seq"
 
     # if training selected
     # here the autoencoder will be trained for each part

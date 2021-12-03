@@ -33,13 +33,7 @@ class TrainClock(object):
         self.step = clock_dict['step']
 
 
-# get the reqwuired network from
-def buildNet(name, config):
-    net = get_network(name, config)
-    if config.parallel:
-        net = nn.DataParallel(net)
-    net = net.cuda()
-    return net
+
 
 
 def projVoxelXYZ(voxels, concat=False):

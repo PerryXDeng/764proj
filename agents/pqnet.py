@@ -6,13 +6,13 @@ from networks import get_network
 from utils import partsdf2mesh, partsdf2voxel, affine2bboxes
 
 
-class MainNetwork(object):
+class PQNET(object):
     def __init__(self, config):
-        self.points_batch_size = config.points_batch_size
-        self.boxparam_size = config.boxparam_size
+        self.points_batch_size = config.ptsBatchSize
+        self.boxparam_size = config.boxparamSize
         self.vox_dim = 64
         self.threshold = config.threshold
-        self.upsampling_steps = config.upsampling_steps
+        self.upsampling_steps = config.upsamplingSteps
 
         self.resolution = self.vox_dim * (1 << self.upsampling_steps)
 
@@ -23,8 +23,10 @@ class MainNetwork(object):
     def load_network(self, config):
         """load trained network module: seq2seq and part_ae"""
         self.seq2seq = get_network("seq2seq", config)
+
         name = config.ckpt if config.ckpt == 'latest' else "ckpt_epoch{}".format(config.ckpt)
-        seq2seq_model_path = os.path.join(config.model_dir, "{}.pth".format(name))
+        seq2seq_model_path = os.path.join("chkt_dir/seq2seq", "{}.pth".format(name))
+
         self.seq2seq.load_state_dict(torch.load(seq2seq_model_path)['model_state_dict'])
         print("Load Seq2Seq model from: {}".format(seq2seq_model_path))
         self.seq2seq = self.seq2seq.cuda().eval()
@@ -85,7 +87,7 @@ class MainNetwork(object):
         part_codes = self.part_encoder(parts_voxel)  # (n_parts, en_z_dim)
         part_codes = part_codes.view(batch_size, max_n_parts, -1).transpose(0, 1)
         cond_pack = cond.unsqueeze(0).repeat(affine.size(0), 1, 1)
-        self.input_seq = torch.cat([part_codes, affine, cond_pack], dim=2) # .unsqueeze(1)
+        self.input_seq = torch.cat([part_codes, affine, cond_pack], dim=2)  # .unsqueeze(1)
 
     def encode_seq(self, input_seq):
         """run seq2seq encoder to encode input part sequence"""
@@ -123,7 +125,7 @@ class MainNetwork(object):
         :return:
             output sdf values: (n_points,)
         """
-        values = self.infer_part_decoder(self.output_part_codes[part_idx:part_idx+1], points.unsqueeze(0))
+        values = self.infer_part_decoder(self.output_part_codes[part_idx:part_idx + 1], points.unsqueeze(0))
         return values.squeeze()
 
     def transform_points(self, points, values):

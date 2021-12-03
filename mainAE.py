@@ -8,6 +8,7 @@ def mainAE():
     # load config parameters here
     configMain = getConfig()
     configMain.module = "part_ae"
+    configMain.chkpDir = "chkt_dir/partae"
 
     configMain.mode = "test"
     # if training selected

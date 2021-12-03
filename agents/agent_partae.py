@@ -6,7 +6,16 @@ from utils import TrainClock
 import torch.optim as optim
 from tensorboardX import SummaryWriter
 import os
-from utils import buildNet
+from networks import get_network
+
+
+# get the reqwuired network from
+def buildNet(name, config):
+    net = get_network(name, config)
+    if config.parallel:
+        net = nn.DataParallel(net)
+    net = net.cuda()
+    return net
 
 
 # Agent class for Part based Auto Encoder
@@ -157,5 +166,3 @@ class AgentPartAE(object):
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
         self.clock.restoreChkPt(checkpoint['clock'])
-
-
