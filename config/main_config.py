@@ -4,6 +4,7 @@ class MainConfig(object):
     def __init__(self):
         self.minNumParts = 2
         self.maxNumParts = 9
+        self.dataRoot = "data"
         self.srcDir = "data/Chair"
         self.useAllPts = False
         self.resolution = 16
@@ -23,6 +24,9 @@ class MainConfig(object):
         self.dfDim = 128
 
         self.zDim = 128  # 128
+        self.hiddenSize = 256
+
+        self.boxparamSize = 6
 
         self.ckpt = 'latest'
         self.vis = True
@@ -37,3 +41,6 @@ class MainConfig(object):
         self.parallel = False
         self.lr = 5e-4
         self.lrStep = 230
+
+        self.rec = True # to reconstruct test data
+        self.byPart = False # output shape is segmented into parts or not

@@ -4,7 +4,7 @@ import torch.nn as nn
 import mcubes as libmcubes
 import trimesh
 import os
-
+from itertools import product, combinations
 
 class TrainClock(object):
     def __init__(self):
@@ -94,3 +94,90 @@ def cycle(iterable):
     while True:
         for x in iterable:
             yield x
+
+
+def affine2bboxes(affine, limit=64):
+    mins = (affine[:, :3] - affine[:, 3:6] / 2) * limit
+    maxs = (affine[:, :3] + affine[:, 3:6] / 2) * limit
+    bboxes = np.clip(np.round(np.concatenate([mins, maxs], axis=1)).astype(int), 0, limit - 1)
+    return bboxes
+
+
+def drawPartsBBOXVoxel(affine=None, bboxes=None, limit=64, proj=True):
+    if bboxes is None:
+        bboxes = affine2bboxes(affine, limit)
+    n_parts = len(bboxes)
+    voxel = np.zeros((limit, limit, limit), dtype=np.uint8)
+    for idx in range(n_parts):
+        bbox = bboxes[idx]
+        size = (bbox[3:] - bbox[:3]).tolist()
+        for s, e in combinations(np.array(list(product(bbox[[0, 3]], bbox[[1, 4]], bbox[[2, 5]]))), 2):
+            if np.sum(np.abs(s - e)) in size:
+                if s[0] != e[0]:
+                    voxel[s[0]:e[0], s[1], s[2]] = 1
+                elif s[1] != e[1]:
+                    voxel[s[0], s[1]:e[1], s[2]] = 1
+                else:
+                    voxel[s[0], s[1], s[2]:e[2]] = 1
+    if proj:
+        return projVoxelXYZ(voxel, concat=True)
+    return voxel
+
+
+def partsdf2voxel(points, values, vox_dim=64, by_part=True):
+    """
+
+    :param points: (n_parts, n_points, 3) or [(n_points1, 3), (n_points2, 3), ...]
+    :param values: (n_parts, n_points, 1) or [(n_points1, 1), (n_points2, 1), ...]
+    :return: voxel: (vox_dim, vox_dim, vox_dim)
+    """
+    n_parts = len(points)
+    # points = np.round(points).astype(int)
+    voxels = np.zeros([vox_dim, vox_dim, vox_dim], np.uint8)
+    for idx in range(n_parts):
+        part_points = np.round(points[idx]).astype(int)
+        part_values = values[idx]
+        postive_points = part_points[np.where(part_values >= 0.5)[0]]
+        voxels[postive_points[:, 0], postive_points[:, 1], postive_points[:, 2]] = idx + 1
+    if not by_part:
+        voxels[np.where(voxels >= 1)] = 1
+    return voxels
+
+
+def partsdf2mesh(points, values, affine=None, vox_dim=64, by_part=True):
+    """
+
+    :param points: (n_parts, n_points, 3) or [(n_points1, 3), (n_points2, 3), ...]
+    :param values: (n_parts, n_points, 1) or [(n_points1, 1), (n_points2, 1), ...]
+    :param affine: (n_parts, 1, 4)
+    :param vox_dim: int
+    :return:
+    """
+    # if vox_dim is None:
+    #     vox_dim = vox_dim
+    if not by_part:
+        shape_voxel = partsdf2voxel(points, values, vox_dim=vox_dim, by_part=False)
+        vertices, triangles = libmcubes.marching_cubes(shape_voxel, 0)
+        shape_mesh = trimesh.Trimesh(vertices, triangles)
+        return shape_mesh
+
+    n_parts = len(points)
+    colors = [[0, 0, 255, 255],      # blue
+              [0, 255, 0, 255],      # green
+              [255, 0, 0, 255],      # red
+              [255, 255, 0, 255],    # yellow
+              [0, 255, 255, 255],    # cyan
+              [255, 0, 255, 255],    # Magenta
+              [160, 32, 240, 255],   # purple
+              [255, 255, 240, 255]]  # ivory
+    shape_mesh = []
+    for idx in range(n_parts):
+        part_voxel = partsdf2voxel(np.asarray(points[idx:idx+1]), np.asarray(values[idx:idx+1]), vox_dim)
+        vertices, triangles = libmcubes.marching_cubes(part_voxel, 0)
+        if affine is not None:
+            vertices = vertices * affine[idx, :, :1] + affine[idx, :, 1:] * vox_dim
+        part_mesh = trimesh.Trimesh(vertices, triangles, face_colors=colors[idx % len(colors)])
+        shape_mesh.append(part_mesh)
+        # print(trimesh.visual.random_color())
+    shape_mesh = trimesh.util.concatenate(shape_mesh)
+    return shape_mesh

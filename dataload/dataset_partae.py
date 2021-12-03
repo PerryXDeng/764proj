@@ -8,9 +8,9 @@ import numpy as np
 
 
 # loading the dataset for chair, based on mode selected between train, validate and test
-class MainDataset(Dataset):
+class PartAEDataset(Dataset):
     def __init__(self, mode, config, useAllPts=False):
-        super(MainDataset, self).__init__()
+        super(PartAEDataset, self).__init__()
         self.srcDir = config.srcDir
         self.mode = mode
         self.ptsBatchSize = config.ptsBatchSize

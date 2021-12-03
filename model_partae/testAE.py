@@ -7,6 +7,7 @@ import torch
 import h5py
 import mcubes as libmcubes
 
+
 def testAffine(agent, testData):
     path = "/localhome/mta122/PycharmProjects/764proj/data/Chair/172.h5"
     with h5py.File(path, 'r') as data_dict:

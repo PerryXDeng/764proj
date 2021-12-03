@@ -7,6 +7,7 @@ from model_partae.testAE import testAE
 def mainAE():
     # load config parameters here
     configMain = getConfig()
+    configMain.module = "part_ae"
 
     configMain.mode = "test"
     # if training selected
