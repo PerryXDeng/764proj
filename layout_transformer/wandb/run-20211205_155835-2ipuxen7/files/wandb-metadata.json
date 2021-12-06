@@ -1,0 +1,29 @@
+{
+    "os": "macOS-10.16-x86_64-i386-64bit",
+    "python": "3.8.8",
+    "heartbeatAt": "2021-12-05T23:58:40.741072",
+    "startedAt": "2021-12-05T23:58:35.053184",
+    "docker": null,
+    "cpu_count": 16,
+    "cuda": null,
+    "args": [
+        "--train_json",
+        "/Users/sukays/Downloads/publaynet/train.json",
+        "--val_json",
+        "/Users/sukays/Downloads/publaynet/val.json",
+        "--exp",
+        "publaynet"
+    ],
+    "state": "running",
+    "program": "main.py",
+    "codePath": "layout_transformer/main.py",
+    "git": {
+        "remote": "https://github.com/kampta/DeepLayout.git",
+        "commit": "60ebaca7f29a14d92c455f83e681c0bd8e2962fe"
+    },
+    "email": "Suikei.Wang@data61.csiro.au",
+    "root": "/Users/sukays/DeepLayout",
+    "host": "sukays-MacBook-Pro-16.local",
+    "username": "suikeiwong",
+    "executable": "/Users/sukays/opt/anaconda3/bin/python"
+}
