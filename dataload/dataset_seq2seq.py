@@ -3,10 +3,21 @@ import torch
 import os
 import json
 from dataload.data_utils import collectDataID, loadH5Seq
+import numpy as np
+from torch.nn.functional import one_hot
 
 
 # Seq2Seq dataset
 ######################################################
+def getCumulativeNumberOfParts(paths, maxNParts):
+    num_models = len(paths)
+    num_parts_per_model = np.empty(num_models, dtype=int)
+    for i in range(num_models):
+        model_path = paths[i]
+        num_parts_per_model[i] = loadH5Seq(model_path, maxNParts, return_numpy=True)['n_parts']
+    return num_parts_per_model.cumsum()
+
+
 class Seq2SeqDataset(Dataset):
     def __init__(self, phase, dataRoot, maxNParts):
         self.data_root = os.path.join(dataRoot, "Chair")
@@ -14,6 +25,7 @@ class Seq2SeqDataset(Dataset):
         self.shapeNames = self.loadShapeNames(phase, self.maxNParts)
         self.allPaths = [os.path.join(self.data_root, name + '.h5') for name in self.shapeNames]
         self.phase = phase
+        self.cumulativeNumPartsAtModel = getCumulativeNumberOfParts(self.allPaths, self.maxNParts)
 
     def loadShapeNames(self, phase, maxNParts, min_n_parts=2):
         shape_names = collectDataID(phase)
@@ -37,6 +49,12 @@ class Seq2SeqDataset(Dataset):
         n_parts = data_dict['n_parts']
         parts_vox3d = torch.tensor(data_dict['vox3d'], dtype=torch.float32).unsqueeze(1)  # (n_parts, 1, dim, dim, dim)
 
+        total_n_parts = self.cumulativeNumPartsAtModel[-1]
+        end = self.cumulativeNumPartsAtModel[index]
+        start = end - n_parts
+        parts_labels = torch.arange(start, end) # (n_parts)
+        parts_labels_onehot = one_hot(parts_labels, total_n_parts) # (n_parts, total_n_parts)
+
         stop_sign = torch.zeros((n_parts, 1), dtype=torch.float32)
         stop_sign[-1] = 1
 
@@ -49,7 +67,8 @@ class Seq2SeqDataset(Dataset):
 
         return {'vox3d': parts_vox3d, 'n_parts': n_parts, 'path': path, 'sign': stop_sign,
                 'mask': mask, 'cond': cond,
-                'affine_input': batch_affine, 'affine_target': batch_affine_target}
+                'affine_input': batch_affine, 'affine_target': batch_affine_target,
+                'part_labels_onehot': parts_labels_onehot}
 
     def __len__(self):
         return len(self.shapeNames)
@@ -59,10 +78,16 @@ def padCollateFNDict(batch):
     n_parts_batch = [d['n_parts'] for d in batch]
     max_n_parts = max(n_parts_batch)
     # n_parts_batch = [torch.LongTensor(x) for x in n_parts_batch]
+
     name_batch = [d['path'] for d in batch]
+
     vox3d_batch = [d['vox3d'] for d in batch]
     vox3d_batch = list(map(lambda x: padTensor(x, pad=max_n_parts, dim=0), vox3d_batch))
     vox3d_batch = torch.stack(vox3d_batch, dim=0)
+
+    label_batch = [d['part_labels_onehot'] for d in batch]
+    label_batch = list(map(lambda x: padTensor(x, pad=max_n_parts, dim=0), label_batch))
+    label_batch = torch.stack(label_batch, dim=0)
 
     sign_batch = [d['sign'] for d in batch]
     sign_batch = list(map(lambda x: padTensor(x, pad=max_n_parts, dim=0), sign_batch))
@@ -80,7 +105,8 @@ def padCollateFNDict(batch):
     cond_batch = torch.stack([d['cond'] for d in batch], dim=0)
     return {'vox3d': vox3d_batch, 'n_parts': n_parts_batch, 'path': name_batch, 'sign': sign_batch,
             'mask': mask_batch, 'cond': cond_batch,
-            'affine_input': affine_input, 'affine_target': affine_target}
+            'affine_input': affine_input, 'affine_target': affine_target,
+            'part_labels_onehot': label_batch}
 
 
 def padTensor(vec, pad, dim):
@@ -99,4 +125,5 @@ def padTensor(vec, pad, dim):
 
 
 if __name__ == "__main__":
+    # next(iter(Seq2SeqDataset('train', "data", 9)))
     pass

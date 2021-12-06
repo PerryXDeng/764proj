@@ -95,7 +95,8 @@ class Seq2SeqAgent(object):
         return outputs, losses
 
     def forward(self, data):
-        row_vox3d = data['vox3d']  # (B, T, 1, vox_dim, vox_dim, vox_dim)
+        row_vox3d = data['vox3d']  # (B, max_n_parts, 1, vox_dim, vox_dim, vox_dim)
+        part_labels = data['part_labels_onehot'] # (B, max_n_parts, total_num_parts)
         batch_size, max_n_parts, vox_dim = row_vox3d.size(0), row_vox3d.size(1), row_vox3d.size(-1)
         batch_n_parts = data['n_parts']
         target_stop = data['sign'].cuda()
