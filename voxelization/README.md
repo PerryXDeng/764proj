@@ -14,8 +14,7 @@ For those who need to train the model on their own dataset, here is our voxeliza
 
 4. Run `run_postprocess.sh`. This will post-process the above h5 file,  e.g. make voxels solid and scale each part to $64^3$.
 
-   ```bash
-   ./run_postprocess.sh {input_h5_folder} {output_h5_folder}
+   ```bash ./run_postprocess.sh {input_h5_folder} {output_h5_folder}
    ```
 
    
