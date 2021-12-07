@@ -50,7 +50,7 @@ def L2Distance(vec1, vec2):
 
 
 # pathJson = "data/parts_json"
-pathJson = "/media/maham/theFunOne/Data/PartNet_Chairs/parts_json"
+pathJson = "data/parts_json"
 
 
 def readJsonParts(path, chairID):

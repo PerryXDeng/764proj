@@ -51,7 +51,7 @@ def main():
         template = randrange(0, len(list))
 
         templateID = list[template]
-        templateID = 2
+        # templateID = 2
         print(templateID)
         if templateID in list:
             list.remove(templateID)
