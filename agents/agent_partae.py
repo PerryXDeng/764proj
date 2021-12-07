@@ -33,7 +33,7 @@ class AgentPartAE(object):
         self.criterion = nn.MSELoss().cuda()
 
         # get the relevant network
-        self.net = buildNet('partae', config)
+        self.net = buildNet('part_ae', config)
 
         # set ADAM optimizer
         self.optimizer = optim.Adam(self.net.parameters(), config.lr)

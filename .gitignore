@@ -1,5 +1,8 @@
+# defautl directory for saved AE weights
+chkt_dir/
+
 # pycharm
-.idea
+.idea/
 
 data/
 log/

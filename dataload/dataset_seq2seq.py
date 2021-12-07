@@ -26,6 +26,7 @@ class Seq2SeqDataset(Dataset):
         self.allPaths = [os.path.join(self.data_root, name + '.h5') for name in self.shapeNames]
         self.phase = phase
         self.cumulativeNumPartsAtModel = getCumulativeNumberOfParts(self.allPaths, self.maxNParts)
+        self.total_n_parts = self.cumulativeNumPartsAtModel[-1]
 
     def loadShapeNames(self, phase, maxNParts, min_n_parts=2):
         shape_names = collectDataID(phase)
@@ -49,11 +50,10 @@ class Seq2SeqDataset(Dataset):
         n_parts = data_dict['n_parts']
         parts_vox3d = torch.tensor(data_dict['vox3d'], dtype=torch.float32).unsqueeze(1)  # (n_parts, 1, dim, dim, dim)
 
-        total_n_parts = self.cumulativeNumPartsAtModel[-1]
         end = self.cumulativeNumPartsAtModel[index]
         start = end - n_parts
         parts_labels = torch.arange(start, end) # (n_parts)
-        parts_labels_onehot = one_hot(parts_labels, total_n_parts) # (n_parts, total_n_parts)
+        parts_labels_onehot = one_hot(parts_labels, self.total_n_parts) # (n_parts, total_n_parts)
 
         stop_sign = torch.zeros((n_parts, 1), dtype=torch.float32)
         stop_sign[-1] = 1
@@ -103,6 +103,7 @@ def padCollateFNDict(batch):
     affine_target = torch.stack(affine_target, dim=1)
 
     cond_batch = torch.stack([d['cond'] for d in batch], dim=0)
+
     return {'vox3d': vox3d_batch, 'n_parts': n_parts_batch, 'path': name_batch, 'sign': sign_batch,
             'mask': mask_batch, 'cond': cond_batch,
             'affine_input': affine_input, 'affine_target': affine_target,

@@ -20,8 +20,6 @@ class MainConfig(object):
         self.batchSize = 40
 
         self.numWorkers = 8
-        self.epochs = 250
-        self.cont = False
 
         self.nLayersE = 5  # 5
         self.efDim = 32
@@ -45,8 +43,17 @@ class MainConfig(object):
         self.modelDir = "model_partae"
         self.chkpDir = "chkt_dir/partae"
         self.parallel = False
-        self.lr = 5e-4
         self.lrStep = 230
+
+        # seq2seq training parameters
+        self.epochs = 250
+        self.cont = False
+        self.lr = 5e-4
+        # self.lr_step_size = 300
+        self.lr_decay = 0.999
+        self.teacher_decay = 0.999
+        self.stop_weight = 0.01
+        self.boxparam_size = 6
 
         self.rec = True  # to reconstruct test data
         self.byPart = False  # output shape is segmented into parts or not

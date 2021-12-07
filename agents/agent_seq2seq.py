@@ -11,7 +11,7 @@ from utils import TrainClock
 
 class Seq2SeqAgent(object):
     def __init__(self, config):
-        super(Seq2SeqAgent, self).__init__(config)
+        super(Seq2SeqAgent, self).__init__()
         self.logDir = config.logDir
         self.stop_weight = config.stop_weight
         self.boxparam_size = config.boxparam_size
@@ -106,16 +106,25 @@ class Seq2SeqAgent(object):
         cond = data['cond'].cuda()
 
         batch_vox3d = row_vox3d.view(-1, 1, vox_dim, vox_dim, vox_dim).cuda()
+        total_n_parts = part_labels.shape[-1]
+        batch_labels = part_labels.view(-1, total_n_parts).cuda() # (B * max_n_parts, total_n_parts)
         with torch.no_grad():
-            part_geo_features = self.part_encoder(batch_vox3d)  # (B * T, z_dim)
+            part_geo_features = self.part_encoder(batch_vox3d)  # (B * max_n_parts, z_dim)
             part_geo_features = part_geo_features.view(batch_size, max_n_parts, -1).transpose(0, 1)
             cond_pack = cond.unsqueeze(0).repeat(affine_input.size(0), 1, 1)
+            print("part geo", part_geo_features.shape)
+            print("affine", affine_input.shape)
+            print("cond pack", cond_pack.shape)
+            print("labels", batch_labels.shape)
 
             target_part_geo = part_geo_features.detach()
             part_feature_seq = torch.cat([part_geo_features, affine_input, cond_pack], dim=2)
+            # part_feature_seq = torch.cat([part_geo_features, affine_input, cond_pack, batch_labels], dim=2)
+            print("feature seq catted", part_feature_seq.shape)
             part_feature_seq = pack_padded_sequence(part_feature_seq, batch_n_parts, enforce_sorted=False)
             _, seq_lengths = pad_packed_sequence(part_feature_seq)  # self to self translation
             target_seq = torch.cat([target_part_geo, affine_target], dim=2)
+            # target_seq = torch.cat([target_part_geo, affine_target, batch_labels.detach()], dim=2)
 
         output_seq, output_stop = self.net(part_feature_seq, target_seq, self.teacher_forcing_ratio)
 

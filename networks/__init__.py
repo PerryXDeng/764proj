@@ -4,7 +4,7 @@ from dataload.data_utils import n_parts_map
 
 
 def get_network(name, config):
-    if name == "partae":
+    if name == "part_ae":
         net = IMNetPart(config.nLayersE, config.efDim, config.nLayersD, config.dfDim, config.zDim)
         return net
     elif name == 'seq2seq':
@@ -14,7 +14,7 @@ def get_network(name, config):
         net = Seq2SeqAE(enInputSize, deInputSize, config.hiddenSize)
         return net
     else:
-        return False
+        raise ValueError
 
 
 def set_requires_grad(nets, requires_grad=False):

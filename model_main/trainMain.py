@@ -6,7 +6,7 @@ from utils import cycle
 
 def train(config, trainData, valData):
     agent = get_agent("seq2seq", config)
-    config.cont = "False"
+
     # load from checkpoint if provided
     if config.cont:
         agent.loadChkPt(config.ckpt)
