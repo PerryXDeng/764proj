@@ -31,6 +31,8 @@ from pyvista import examples
 # 3 - leg
 # 4 - miscelannous
 
+# types of legs
+# tells number of legs and caps at 4
 
 colors = [[0, 0, 255, 255],  # blue
           [0, 255, 0, 255],  # green
@@ -78,14 +80,14 @@ class Part:
 
 
 class Chair:
-    def __init__(self, nParts, partList):
+    def __init__(self, nParts, partList, numLegs):
         self.nParts = nParts
         self.partList = partList
-
+        self.numLegs = numLegs
 
 class Mixer:
     def __init__(self, resolution=64, agent=None, config=None, listIn=None, templatePath=None,
-                 templateID=None, mode="project", KMM=3, restriction="strict",depthFirst=None):
+                 templateID=None, mode="project", KMM=3, restriction="strict", depthFirst=None):
 
         self.allChairs = []
         self.resolution = resolution
@@ -103,6 +105,7 @@ class Mixer:
         self.loadTemplate()
         self.restriction = restriction
         self.depthFirst = depthFirst
+
 
     def loadOneChair(self, path, chairID, jsonPath):
         # nPartsA = data['n_parts'].cpu().detach().numpy().flatten()
@@ -127,6 +130,7 @@ class Mixer:
             partList.append(part)
             # read type of part
 
+        nLegs = 0
         for i in range(len(listParts)):
             partName = listParts[i]
             if i >= len(partList):
@@ -140,8 +144,11 @@ class Mixer:
             elif partName == "Chair Base":
                 for j in range(i, nParts):
                     partList[j].type = 3
+                    nLegs = nLegs + 1
 
-        chair = Chair(nParts, partList)
+        numLegs = nLegs if nLegs < 4 else 4
+
+        chair = Chair(nParts, partList, numLegs)
         return chair
 
     def loadAllChairs(self):
@@ -199,22 +206,26 @@ class Mixer:
 
         chairIDList = []
         partIDList = []
-
+        if chairID == None:
+            tempEnc = self.templateChair.partList[partIdx].encoding
+        else:
+            tempEnc = self.allChairs[chairID].partList[partIdx].encoding
+        numLegs = self.templateChair.numLegs
         for i in range(self.listLength):
             for j in range(self.allChairs[i].nParts):
                 partChair = self.allChairs[i].partList[j]
                 # only look at the back
                 if partChair.type == partType:
-                    chairIDList.append(i)
-                    partIDList.append(j)
+                    if partType == 3:
+                        if self.allChairs[i].numLegs == numLegs:
+                            chairIDList.append(i)
+                            partIDList.append(j)
+                    else:
+                        chairIDList.append(i)
+                        partIDList.append(j)
 
         L2List = []
         partEncList = []
-
-        if chairID == None:
-            tempEnc = self.templateChair.partList[partIdx].encoding
-        else:
-            tempEnc = self.allChairs[chairID].partList[partIdx].encoding
 
         L2_Model_Part = []
         for i in range(len(chairIDList)):
@@ -241,7 +252,7 @@ class Mixer:
         depth = self.depthFirst
 
         if self.mode == "replace":
-        # if True:
+            # if True:
             r = randrange(0, depth)
             encBack = partEncList[r]
             backListChair = [L2_Model_Part[r][1]]
@@ -267,7 +278,7 @@ class Mixer:
 
     def mixNmatchImproved(self, numModels=1, outDir="results/mix"):
 
-        self.outputTemplate(outDir)
+        # self.outputTemplate(outDir)
 
         for modNum in range(numModels):
             sequenceGeo = []
@@ -321,18 +332,18 @@ class Mixer:
                 if self.restriction == "strict":
                     partIdx = -1
 
-
-
                 if partIdx == -1:
                     # find three closest same type parts to my current part, then choose one randomly
                     L2_Model_Part, partEncList, tempEnc = self.findListtUsingL2(restI, partType=partType)
-                    randIndPart = random.randint(0, self.KMM)
+                    kmm = self.KMM if self.KMM <= len(L2_Model_Part) else len(L2_Model_Part)
+                    randIndPart = random.randint(0, kmm)
                     chairChosen = L2_Model_Part[randIndPart][1]
                     partChosen = L2_Model_Part[randIndPart][2]
                 else:
                     L2_Model_Part, partEncList, tempEnc = self.findListtUsingL2(partIdx, partType=partType,
                                                                                 chairID=chairListUse[restI - 1][0])
-                    randIndPart = random.randint(0, self.KMM)
+                    kmm = self.KMM if self.KMM <= len(L2_Model_Part) else len(L2_Model_Part)
+                    randIndPart = random.randint(0, kmm)
                     chairChosen = L2_Model_Part[randIndPart][1]
                     partChosen = L2_Model_Part[randIndPart][2]
 
@@ -347,7 +358,6 @@ class Mixer:
                 if self.restriction == "strict":
                     partIdx = -1
 
-
                 # A, B , P
                 encMiddle = lastChair.partList[partIdx].encoding
                 origin = encMiddle * 0
@@ -359,7 +369,6 @@ class Mixer:
                     resEnc = self.projectEncoding(origin, chairChosenEnc, encMiddle)
                     # a = 0.8
                     # resEnc = a * chairChosenEnc + (1 - a) * encMiddle
-
 
                 # save the used chair for further use
                 chairListUse[restI] = [chairChosen]
@@ -380,18 +389,16 @@ class Mixer:
                         resEncArm = resEnc
                         armDone = True
 
-                # if partType == 3:  # legchair
-                #     if legDone:
-                #         resEnc = resEncLeg
-                #     else:
-                #         resEncLeg = resEnc
-                #         legDone = True
+                if partType == 3:  # legchair
+                    if legDone:
+                        resEnc = resEncLeg
+                    else:
+                        resEncLeg = resEnc
+                        legDone = True
 
                 sequenceGeo.append(resEnc)
                 sequenceScale.append(scale)
                 sequenceTrans.append(translation)
-
-
 
                 nparts = nparts + 1
 
@@ -465,10 +472,8 @@ class Mixer:
             ll = []
             for i in range(numParts):
                 ll.append(chairListUse[i][0])
-            print(ll)
 
-
-        return True
+        return ll
 
     def outputThyModel(self, modelNum, dir, name):
         model = self.allChairs[modelNum]
@@ -522,4 +527,3 @@ class Mixer:
         savePath = os.path.join(dir, modelName)
         shape_mesh.export(savePath, file_type='obj')
         return scene
-

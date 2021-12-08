@@ -6,16 +6,19 @@ from dataload.data_utils import getIdsMode
 import os
 import numpy as np
 
+
 def fileDoesntExist(path):
     if os.path.exists(path):
         return False
     else:
         return True
 
-dataPath = "data/Chair" #change this to new data as needec
+
+dataPath = "data/Chair"  # change this to new data as needec
 templatePath = "data/Chair"
-pathJson = "data/parts_json" #this will be shared by both
-numTemplates = 10
+pathJson = "data/parts_json"  # this will be shared by both
+numTemplates = 1
+
 
 def main():
     obbInfo = {}
@@ -27,7 +30,7 @@ def main():
     IDS = getIdsMode("train")
     import random
     num = 4000
-    listLength = 1   #per template
+    listLength = 100  # per template
     itemList = random.sample(range(num), num)
     for i in range(listLength):
         item = itemList[i]
@@ -51,20 +54,28 @@ def main():
         template = randrange(0, len(list))
 
         templateID = list[template]
-        # templateID = 2
-        print(templateID)
+        templateID = 38581
+
         if templateID in list:
             list.remove(templateID)
 
-
         mixer = Mixer(agent=agent, config=config, listIn=list, templatePath=templatePath,
-                      templateID = templateID, mode="replace", KMM=1, restriction="strict",depthFirst=5)
-        mixer.mixNmatchImproved(numModels=5, outDir="results/mix")
+                      templateID=templateID, mode="replace", KMM=30, restriction="relax", depthFirst=15)
+        usedChairs = mixer.mixNmatchImproved(numModels=2, outDir="results/mix")
+        mixer.outputTemplate(dir="results/mix")
 
-    #replace strict knn=15 depthFirst=10
-    #replace relax knn = 3 depthFirst=5
-    #project strict knn = 5 depth = 5
-    #project relax knn = 5 depth = 5
+        print(templateID)
+        print(usedChairs)
+        listUsed = []
+        for l in range(len(usedChairs)):
+            listUsed.append(list[usedChairs[l]])
+        print(listUsed)
+        a = 2
+    # replace strict knn=15 depthFirst=10
+    # replace relax knn = 3 depthFirst=5
+    # project strict knn = 5 depth = 5
+    # project relax knn = 5 depth = 5
+
 
 if __name__ == '__main__':
     main()
