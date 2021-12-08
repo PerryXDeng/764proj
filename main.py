@@ -15,7 +15,7 @@ def fileDoesntExist(path):
 dataPath = "data/Chair" #change this to new data as needec
 templatePath = "data/Chair"
 pathJson = "data/parts_json" #this will be shared by both
-numTemplates = 1
+numTemplates = 10
 
 def main():
     obbInfo = {}
@@ -27,7 +27,7 @@ def main():
     IDS = getIdsMode("train")
     import random
     num = 4000
-    listLength = 10
+    listLength = 1   #per template
     itemList = random.sample(range(num), num)
     for i in range(listLength):
         item = itemList[i]

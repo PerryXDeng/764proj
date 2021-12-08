@@ -11,19 +11,21 @@ def ensure_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-n_parts = 6
+# n_parts = 6
 def main():
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--src', type=str, help='source directory')
-    # parser.add_argument('--out', type=str, help='output directory')
-    # args = parser.parse_args()
-    #
-    # src_root = args.src # "/home/megaBeast/Desktop/partnet_data/voxelized/Table2"
-    # tgt_root = args.out # "/dev/data/partnet_data/wurundi/voxelized/Table2"
-    #
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--src', type=str, help='source directory')
+    parser.add_argument('--out', type=str, help='output directory')
+    parser.add_argument('--n_parts', type=str, help='number of parts')
+    args = parser.parse_args()
 
-    src_root = "orgh5"
-    tgt_root = "step1h5"
+    src_root = args.src # "/home/megaBeast/Desktop/partnet_data/voxelized/Table2"
+    tgt_root = args.out # "/dev/data/partnet_data/wurundi/voxelized/Table2"
+    n_parts = int(args.n_parts)
+
+    #
+    # src_root = "orgh5"
+    # tgt_root = "step1h5"
     ensure_dir(tgt_root)
 
     vox_dim = 64
@@ -50,7 +52,10 @@ def main():
         for i in range(n_parts):
             path = os.path.join(shape_dir, 'object_all.h5')
             with h5py.File(path, 'r') as fp:
-                part_voxel = fp['tensor'][i].astype(np.int)
+                if n_parts == 1:
+                    part_voxel = fp['tensor'][:].astype(np.int)
+                else:
+                    part_voxel = fp['tensor'][i].astype(np.int)
 
             parts_voxel_origin.append(part_voxel)
             part_points = np.where(part_voxel >= 1)
