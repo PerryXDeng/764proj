@@ -87,7 +87,7 @@ for vox in voxelModels:
     # top
     img1 = 255 - img1
     im = Image.fromarray(img1)
-    path = os.path.join(main_path, "top.jpeg")
+    path = os.path.join(main_path, "x.jpeg")
     im = im.resize((256, 256), Image.ANTIALIAS)
     im = im.rotate(180)
     im.save(path)
@@ -97,7 +97,7 @@ for vox in voxelModels:
     im = Image.fromarray(img2)
     im = im.resize((256, 256), Image.ANTIALIAS)
     im = im.rotate(90)
-    path = os.path.join(main_path, "bottom.jpeg")
+    path = os.path.join(main_path, "y.jpeg")
     im.save(path)
 
     # side
@@ -105,5 +105,5 @@ for vox in voxelModels:
     im = Image.fromarray(img3)
     im = im.resize((256, 256), Image.ANTIALIAS)
     im = im.rotate(90)
-    path = os.path.join(main_path, "side.jpeg")
+    path = os.path.join(main_path, "z.jpeg")
     im.save(path)
