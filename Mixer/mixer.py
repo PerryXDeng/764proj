@@ -234,7 +234,7 @@ class Mixer:
             tempEnc = partTemplate.encoding
         else:
             tempEnc = self.allChairs[chairID].partList[partIdx].encoding
-            partTemplate = self.templateChair.partList[partIdx]
+            partTemplate = self.allChairs[chairID].partList[partIdx]
         numLegs = self.templateChair.numLegs
         penalty = []
         for i in range(self.listLength):
@@ -519,7 +519,7 @@ class Mixer:
                 scale = sequenceScaleSecond[genI]
                 mesh.apply_scale([scale[0], scale[1], scale[2]])
 
-                size = sequenceSize[genI]
+                # size = sequenceSize[genI]
 
                 translation = sequenceTrans[genI]
                 mesh.apply_translation(translation)
@@ -580,8 +580,8 @@ class Mixer:
             scale = self.templateChair.partList[i].scale
             mesh.apply_scale([scale, scale, scale])
             translation = self.templateChair.partList[i].translation
-            mesh.apply_translation(translation) 
-            size = self.templateChair.partList[]
+            mesh.apply_translation(translation)
+            # size = self.templateChair.partList[]
             shape_mesh.append(mesh)
             scene.add_geometry(mesh)
 
