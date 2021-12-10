@@ -1,5 +1,4 @@
 from config import getConfig
-from Mixer.mixer import Mixer
 from agents import get_agent
 from random import randrange
 from dataload.data_utils import getIdsMode
@@ -7,39 +6,53 @@ import os
 import numpy as np
 import glob
 import random
-
-def fileDoesntExist(path):
-    if os.path.exists(path):
-        return False
-    else:
-        return True
+from Mixer.mixer import fileDoesntExist
 
 
-dataPath = "data/TestData"  # change this to new data as needec
+dataPath = "data/TestData/set1"  # change this to new data as needec
+# dataPath = "data/Chair"  # change this to new data as needec
 pathJson = "data/parts_json"  # this will be shared by both
-numTemplates = 5
-numModelsPerTemplate = 2
-listLength = 20  # per template
-nnValBack = 4  # keep 2-3 values less than list length
-kmmVal = 4  # keep 2-3 values  less than list lenght
-useTemplate = False
-useDataForTemplate = False
-loadAllData = True #overrides list length
+numTemplates = 3
+numModelsPerTemplate = 3
+nnValBack = 2
+kmmVal = 2
+lenList = 50
 
-mode1 = "replace" #replace or project
-mode2 = "relax" #strict or relax
+
+#output metrics
+printnoAdjust = False
+outputTemplate = False
+seqName = True
+
+# not usimg. so dont change
+loadAllData = True  # overrides list length
+useTemplate = True
+useDataForTemplate = True
+usePCA = False
+pcaNum = 50
+modeMain = True
+applyRandomTest = True
+
+
+mode1 = "replace"  # replace or project
+mode2 = "strict"  # strict or relax
 
 if useDataForTemplate:
-    templatePath = "data/TestData"
+    templatePath = dataPath
 else:
     templatePath = "data/Chair"
-
 
 outputDir = "results/mix"
 files = glob.glob(os.path.join(outputDir, "*"))
 for f in files:
     os.remove(f)
 
+
+
+if modeMain:
+    from Mixer.mixer import Mixer
+else:
+    from Mixer.mixer_backup import Mixer
 
 def main():
     obbInfo = {}
@@ -52,8 +65,11 @@ def main():
     objs = os.listdir(dataPath)
     num = len(objs)
     itemList = random.sample(range(num), num)
+
     if loadAllData:
-        listLength = num-1
+        listLength = num
+    else:
+        listLength = lenList
 
     for i in range(listLength):
         item = itemList[i]
@@ -61,10 +77,10 @@ def main():
         path = os.path.join(dataPath, filename)
         if fileDoesntExist(path):
             continue
-        path = os.path.join(pathJson, str(filename.replace(".h5","")), "result.json")
+        path = os.path.join(pathJson, str(filename.replace(".h5", "")), "result.json")
         if fileDoesntExist(path):
             continue
-        list.append(int(filename.replace(".h5","")))
+        list.append(int(filename.replace(".h5", "")))
         if len(list) == listLength:
             break
 
@@ -74,24 +90,35 @@ def main():
 
     for kk in range(numTemplates):
 
-        objs = os.listdir(templatePath)
-        foundTemplate = False
-        while not foundTemplate:
-            template = randrange(0, len(objs))
-            templateID = objs[template].replace(".h5","")
-            path = os.path.join(pathJson, str(templateID), "result.json")
-            if not fileDoesntExist(path):
-                break
+        if not useDataForTemplate:
+            objs = os.listdir(templatePath)
+            foundTemplate = False
+            while not foundTemplate:
+                template = randrange(0, len(objs))
+                templateID = objs[template].replace(".h5", "")
+                path = os.path.join(pathJson, str(templateID), "result.json")
+                if not fileDoesntExist(path):
+                    break
 
-        if not useTemplate:
-            if templateID in list:
-                list.remove(templateID)
+            if not useTemplate:
+                if templateID in list:
+                    list.remove(templateID)
+        else:
+            objs = os.listdir(dataPath)
+            objs.sort()
+            templateID = objs[kk].replace(".h5", "")
 
         print(templateID)
-        mixer = Mixer(agent=agent, config=config, listIn=list, templatePath=templatePath,
-                      templateID=templateID, mode=mode1, KMM=kmmVal, restriction=mode2, depthFirst=nnValBack,
-                      useTemplate=useTemplate, thresholdNN=2)
-        mixer.outputTemplate(dir=outputDir)
+        mixer = Mixer(agent=agent, config=config, listIn=list, dataPath=dataPath, templatePath=templatePath,
+                      templateID=templateID, mode=mode1, KMM=kmmVal, restriction=mode2, startTemp=False,
+                      depthFirst=nnValBack,
+                      useTemplate=useTemplate, thresholdNN=3, pcaDataTrainNum=6000, pcaComp=pcaNum,usePCA=usePCA,
+                      applyRandomTest=applyRandomTest,noAdjust=printnoAdjust,seqName=seqName)
+
+        # mixer.findPCAofTrain()
+        mixer.loadPCAInfo()
+        if outputTemplate:
+            mixer.outputTemplate(outDir=outputDir)
         mixer.mixNmatchImproved(numModels=numModelsPerTemplate, outDir=outputDir, list=list)
 
     # replace strict knn=15 depthFirst=10
