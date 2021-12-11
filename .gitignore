@@ -1,3 +1,7 @@
+.idea/
+chkt_dir/
+wandb/
+
 data/
 log/
 results/
