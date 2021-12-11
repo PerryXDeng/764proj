@@ -341,7 +341,7 @@ class Mixer:
                                 diffLoc = 1
                         if abs(self.templateChair.numLegs - curChair.numLegs) !=0:
                             diffLegs = 1
-                        penalty[len(penalty) - 1] = 2 * legDiff + 0.5 * diffLoc + 2 * diffLegs
+                        penalty[len(penalty) - 1] = 0.5 * legDiff + 0.5 * diffLoc
 
         L2List = []
         partEncList = []

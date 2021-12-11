@@ -9,21 +9,24 @@ import random
 from Mixer.mixer import fileDoesntExist
 
 
+#############
+# TO CHANGE #
 dataPath = "data/TestData/set1"  # change this to new data as needec
-# dataPath = "data/Chair"  # change this to new data as needec
-pathJson = "data/parts_json"  # this will be shared by both
-numTemplates = 3
-numModelsPerTemplate = 3
-nnValBack = 2
-kmmVal = 2
-lenList = 50
+numModelsPerTemplate = 2 #increase to get more chairs, but will probably get repeats
+#############
 
+
+objs = os.listdir(dataPath)
+numTemplates = len(objs)
 
 #output metrics
 printnoAdjust = False
 outputTemplate = False
 seqName = True
-
+nnValBack = 2
+kmmVal = 2
+lenList = 50
+pathJson = "data/parts_json"  # this will be shared by both
 # not usimg. so dont change
 loadAllData = True  # overrides list length
 useTemplate = True
