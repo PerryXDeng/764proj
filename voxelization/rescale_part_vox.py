@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 from skimage.transform import resize
 from joblib import Parallel, delayed
-
+import argparse
 VOX_DIM = 64
 
 def ensure_dir(path):

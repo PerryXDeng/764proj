@@ -4,22 +4,28 @@ import glob
 import numpy as np
 from tqdm import tqdm
 import json
+import argparse
 
 
 def ensure_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-
+# n_parts = 6
 def main():
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--src', type=str, help='source directory')
     parser.add_argument('--out', type=str, help='output directory')
+    parser.add_argument('--n_parts', type=str, help='number of parts')
     args = parser.parse_args()
 
     src_root = args.src # "/home/megaBeast/Desktop/partnet_data/voxelized/Table2"
     tgt_root = args.out # "/dev/data/partnet_data/wurundi/voxelized/Table2"
+    n_parts = int(args.n_parts)
+
+    #
+    # src_root = "orgh5"
+    # tgt_root = "step1h5"
     ensure_dir(tgt_root)
 
     vox_dim = 64
@@ -30,25 +36,28 @@ def main():
         shape_dir = os.path.join(src_root, name)
         part_paths = sorted(glob.glob(os.path.join(shape_dir, 'object_*.h5')))
         # u_part_paths = sorted(glob.glob(os.path.join(shape_dir, 'u_object_*.h5')))
-        n_parts = len(part_paths)
+
 
         save_path = os.path.join(tgt_root, name + '.h5')
-
         # whole shape
         # with h5py.File(os.path.join(shape_dir, 'shape.h5'), 'r') as fp:
         #     shape_voxel = fp['tensor'][0]
 
         shape_voxel = np.zeros((vox_dim, vox_dim, vox_dim))
+        path = os.path.join(shape_dir, 'object_{}.h5'.format(1))
 
         # parts voxel in origin shape
         incomplete = False
         parts_voxel_origin = []
         for i in range(n_parts):
-            path = os.path.join(shape_dir, 'object_{}.h5'.format(i + 1))
+            path = os.path.join(shape_dir, 'object_all.h5')
             with h5py.File(path, 'r') as fp:
-                part_voxel = fp['tensor'][0]
-            parts_voxel_origin.append(part_voxel)
+                if n_parts == 1:
+                    part_voxel = fp['tensor'][:].astype(np.int)
+                else:
+                    part_voxel = fp['tensor'][i].astype(np.int)
 
+            parts_voxel_origin.append(part_voxel)
             part_points = np.where(part_voxel >= 1)
             part_points = np.stack(part_points, axis=0)
             ori_voxel_on_points = shape_voxel[part_points[0], part_points[1], part_points[2]]
@@ -95,6 +104,7 @@ def main():
         json.dump(class_info, f)
 
     print(total_valid_nums)
+
 
 if __name__ == '__main__':
     main()

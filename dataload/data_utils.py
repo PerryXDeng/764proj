@@ -56,6 +56,21 @@ def loadH5Partwise(path, partInd, resolution=64, rescale=True):
     return nParts, partVoxel, dataPoints, dataVals, scale, translation, size
 
 
+# load part wise information
+def loadH5Full(path, resolution=64, rescale=True):
+    with h5py.File(path, 'r') as data_dict:
+        nParts = data_dict.attrs['n_parts']
+        partVoxel = data_dict['parts_voxel_scaled64'][:].astype(np.float)
+        dataPoints = data_dict['points_{}'.format(resolution)][:]
+        dataVals = data_dict['values_{}'.format(resolution)][:]
+        translation = data_dict['translations'][:]
+        scale = data_dict['scales'][:]
+        size = data_dict['size'][:]
+    if rescale:
+        dataPoints = dataPoints / resolution
+    return nParts, partVoxel, dataPoints, dataVals, scale, translation, size
+
+
 def loadH5Seq(path, max_n_parts, return_numpy=False, rescale_affine=True):
     """load part data for seq2seq training
 

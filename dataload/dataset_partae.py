@@ -3,7 +3,7 @@ from dataload.data_utils import getIdsMode, loadH5Partwise
 import json
 import os
 import torch
-import random
+import randomtest
 import numpy as np
 
 
@@ -44,7 +44,7 @@ class PartAEDataset(Dataset):
         # shuffle selected points
         if not self.allPts and len(dataPts) > self.ptsBatchSize:
             indices = np.arange(len(dataPts))
-            random.shuffle(indices)
+            randomtest.shuffle(indices)
             # np.random.shuffle(indices)
             indices = indices[:self.ptsBatchSize]
             dataPts = dataPts[indices]

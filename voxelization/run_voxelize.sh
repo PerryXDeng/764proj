@@ -11,6 +11,7 @@ start_time=`date --date='0 days ago' "+%Y-%m-%d %H:%M:%S"`
 
 shape_num=1
 
+
 for element in `ls $1`
     do
         dir_or_file=$1$element
