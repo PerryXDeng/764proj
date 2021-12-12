@@ -144,6 +144,7 @@ class Mixer:
         self.loadAllChairs()
         self.printNoAdjust = noAdjust
         self.seqName = seqName
+        self.filenum = 0
 
     def loadPCAInfo(self):
         path = os.path.join("chkt_dir/pca", "pca_" + str(self.pcaComp) + ".pkl")
@@ -341,7 +342,7 @@ class Mixer:
                                 diffLoc = 1
                         if abs(self.templateChair.numLegs - curChair.numLegs) !=0:
                             diffLegs = 1
-                        penalty[len(penalty) - 1] = 0.5 * legDiff + 0.5 * diffLoc
+                        penalty[len(penalty) - 1] = 0.5 * legDiff + 0.5 * diffLoc + diffLegs * 0.5
 
         L2List = []
         partEncList = []
@@ -411,9 +412,9 @@ class Mixer:
 
         return encBack, L2_Model_Part, backListChair, backListPart
 
-    def mixNmatchImproved(self, numModels=1, outDir="results/mix", list=None):
+    def mixNmatchImproved(self, numModels=1, outDir="results/mix", list=None, startNum=1):
 
-
+        self.filenum = startNum
         global chairChosen, partChosen
         for modNum in range(numModels):
             rCol = 236
@@ -638,16 +639,17 @@ class Mixer:
                 translation = sequenceTrans[genI]
                 mesh.apply_translation(translation)
                 shape_mesh.append(mesh)
-            if self.seqName:
-                numR = randrange(10000, 100000)
-                modelName = "model_" + str(numR) + ".obj"
-            else:
-                modelName = "template_" + str(self.templateID) + "model_" + str(modNum) + ".obj"
+            # if self.seqName:
+            #     numR = randrange(10000, 100000)
+            #     modelName = "model_" + str(numR) + ".obj"
+            # else:
+            self.filenum = self.filenum + 1
+            modelName = "model_" + str(self.filenum) + ".obj"
             shape_mesh = trimesh.util.concatenate(shape_mesh)
             savePath = os.path.join(outDir, modelName)
             shape_mesh.export(savePath, file_type='obj')
-            print(ll)
-        return ll
+            # print(ll)
+        return self.filenum
 
     def outputTemplate(self, outDir):
         model = self.templateChair

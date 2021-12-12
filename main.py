@@ -7,17 +7,30 @@ import numpy as np
 import glob
 import random
 from Mixer.mixer import fileDoesntExist
+import argparse
+
+
+import argparse
+
+parser = argparse.ArgumentParser(description='Process some integers.')
+parser.add_argument('--setnum', default="1")
+parser.add_argument('--numModel', default="2")
+parser.add_argument('--numTemplate', default="2")
+
+args = parser.parse_args()
 
 
 #############
 # TO CHANGE #
-dataPath = "data/TestData/set1"  # change this to new data as needec
-numModelsPerTemplate = 2 #increase to get more chairs, but will probably get repeats
+dataPath = "data/TestData/set" + args.setnum
+numModelsPerTemplate = int(args.numModel)
+numTemplates = int(args.numTemplate)
 #############
+print(dataPath)
+print(numModelsPerTemplate)
 
+# objs = os.listdir(dataPath)
 
-objs = os.listdir(dataPath)
-numTemplates = len(objs)
 
 #output metrics
 printnoAdjust = False
@@ -49,7 +62,8 @@ outputDir = "results/mix"
 files = glob.glob(os.path.join(outputDir, "*"))
 for f in files:
     os.remove(f)
-
+if not os.path.isdir(outputDir):
+    os.mkdir(outputDir)
 
 
 if modeMain:
@@ -91,6 +105,7 @@ def main():
         print("Error")
         return False
 
+    startNum = 0
     for kk in range(numTemplates):
 
         if not useDataForTemplate:
@@ -119,10 +134,11 @@ def main():
                       applyRandomTest=applyRandomTest,noAdjust=printnoAdjust,seqName=seqName)
 
         # mixer.findPCAofTrain()
-        mixer.loadPCAInfo()
+        # mixer.loadPCAInfo()
+
         if outputTemplate:
             mixer.outputTemplate(outDir=outputDir)
-        mixer.mixNmatchImproved(numModels=numModelsPerTemplate, outDir=outputDir, list=list)
+        startNum = mixer.mixNmatchImproved(numModels=numModelsPerTemplate, outDir=outputDir, list=list, startNum=startNum)
 
     # replace strict knn=15 depthFirst=10
     # replace relax knn = 3 depthFirst=5

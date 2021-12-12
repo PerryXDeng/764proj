@@ -1,7 +1,4 @@
-
-
 import os
-
 import trimesh
 from utils import projVoxelXYZ
 import h5py
@@ -9,21 +6,9 @@ import numpy as np
 from PIL import Image
 
 
-from argparse import ArgumentParser
-
-parser = ArgumentParser()
-parser.add_argument("--dir", type=str, default='' )
-
-args = parser.parse_args()
-
-
-base_dir = args.dir
-
-#meshdir = "/localhome/ama240/Desktop/764proj/results/mix/test"
-meshdir = os.path.join(base_dir, 'meshes')
+meshdir = "results/mix"
 good = True
-outdir = os.path.join(base_dir, 'results')
-#outdir = "/localhome/ama240/Desktop/764proj/results"
+outdir = "results"
 objs = os.listdir(meshdir)
 
 #########################################################
@@ -34,27 +19,24 @@ idx = 1
 # scale = 64
 for obj in objs:
     d_path = os.path.join(meshdir, obj)
-    if obj.startswith('model'):
-        if good:
-            s_path = os.path.join(outdir, "tempgood")
-        else:
-            s_path = os.path.join(outdir, "tempbad")
-        mesh = trimesh.load(d_path)
-        if not os.path.exists(s_path):
-          os.makedirs(s_path)
-        e_path = os.path.join(s_path, str(idx)+".off")
-        idx = idx + 1
-        mesh.export(e_path)
+    if good:
+        s_path = os.path.join(outdir, "tempgood")
+    else:
+        s_path = os.path.join(outdir, "tempbad")
+    mesh = trimesh.load(d_path)
+    if not os.path.exists(s_path):
+      os.makedirs(s_path)
+    e_path = os.path.join(s_path, str(idx)+".off")
+    idx = idx + 1
+    mesh.export(e_path)
 
 dim = 64
-#if good:
-#    data_dir = "/localhome/ama240/Desktop/764proj/results/tempgood"
-#else:
-#    data_dir = "/localhome/ama240/Desktop/764proj/results/tempbad"
+if good:
+    data_dir = "results/tempgood"
+else:
+    data_dir = "results/tempgood"
 
-data_dir = s_path
-
-save_dir = os.path.join(outdir, 'tempvoxels')
+save_dir = "results/tempvoxels"
 objs = os.listdir(data_dir)
 for obj in objs:
     d_path = os.path.join(data_dir, obj)
@@ -70,20 +52,16 @@ for obj in objs:
 ################ CONDITION ##############################
 #########################################################
 
-#command = 'python3 convert_h5_vox.py --src /localhome/ama240/Desktop/764proj/results/tempvoxels --out /localhome/ama240/Desktop/764proj/results/tempvoxels2 --n_parts 1'
-command = 'python3 convert_h5_vox.py --src {} --out {} --n_parts 1'.format(save_dir, os.path.join(outdir, 'tempvoxels2'))
-
+command = "python convert_h5_vox.py --src results/tempvoxels --out results/tempvoxels2 --n_parts 1"
 os.system(command)
 
-#command = "python3 fill_part_solid.py --src /localhome/ama240/Desktop/764proj/results/tempvoxels2 --out /localhome/ama240/Desktop/764proj/results/tempvoxels3/Chair"
-command = "python3 fill_part_solid.py --src {} --out {}".format(os.path.join(outdir, 'tempvoxels2'), os.path.join(outdir, 'tempvoxels3/Chair'))
+command = "python fill_part_solid.py --src results/tempvoxels2 --out results/tempvoxels3/Chair"
 os.system(command)
 
-#command = "python3 rescale_part_vox.py --src /localhome/ama240/Desktop/764proj/results/tempvoxels3/Chair"
-command = "python3 rescale_part_vox.py --src {}".format(os.path.join(outdir, 'tempvoxels3/Chair'))
+command = "python rescale_part_vox.py --src results/tempvoxels3/Chair"
 os.system(command)
 
-command = "python3 /localhome/ama240/Desktop/764proj/data/sample_points_from_voxel.py --src {} --category Chair".format(os.path.join(outdir, 'tempvoxels3'))
+command = "python data/sample_points_from_voxel.py --src results/tempvoxels3 --category Chair"
 os.system(command)
 
 
@@ -91,14 +69,12 @@ os.system(command)
 ################ SAVE THE IMAGE #########################
 #########################################################
 #
-#final_vox_dir = "/localhome/ama240/Desktop/764proj/results/tempvoxels3/Chair"
-final_vox_dir = os.path.join(outdir, 'tempvoxels3/Chair')
+final_vox_dir = "results/tempvoxels3/Chair"
 voxelModels = os.listdir(final_vox_dir)
 if good:
-    #image_dir = "/localhome/ama240/Desktop/764proj/results/goodimgs"
-    image_dir = os.path.join(outdir, 'imgs')
+    image_dir = "results/goodimgs"
 else:
-    image_dir = "/localhome/ama240/Desktop/764proj/results/badimgs"
+    image_dir = "results/badimgs"
 
 for vox in voxelModels:
     filename = os.path.join(final_vox_dir, vox)
