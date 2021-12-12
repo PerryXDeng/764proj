@@ -17,15 +17,6 @@ import pandas as pd
 import pickle
 
 os.environ["PYOPENGL_PLATFORM"] = "egl"
-import pyrender
-import matplotlib.pyplot as plt
-from PIL import Image
-import io
-from pyglet import gl
-import scipy.misc
-import imageio
-import pyvista as pv
-from pyvista import examples
 
 # Type of parts
 # 0 - back

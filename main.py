@@ -11,7 +11,7 @@ from Mixer.mixer import fileDoesntExist
 
 #############
 # TO CHANGE #
-dataPath = "data/TestData/set1"  # change this to new data as needec
+dataPath = "data/TestData/set3"  # change this to new data as needec
 numModelsPerTemplate = 2 #increase to get more chairs, but will probably get repeats
 #############
 
