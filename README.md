@@ -1,7 +1,7 @@
 # adv-gan partnet MixNMatch
 adv\_gan .ipynb shows that we can graphically design chairs using parts from existing chairs through conducting adversarial learning on the inputs to a GAN.
 
-For visualizations of results see figures in notebook.
+For visualizations of results run the notebook and then open the resulting OBJ files in test/meshes.
 
 # PQ-NET
 This repository is based on PyTorch implementation of this paper:
