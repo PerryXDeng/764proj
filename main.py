@@ -13,9 +13,9 @@ import argparse
 import argparse
 
 parser = argparse.ArgumentParser(description='Process some integers.')
-parser.add_argument('--setnum', default="1")
-parser.add_argument('--numModel', default="2")
-parser.add_argument('--numTemplate', default="2")
+parser.add_argument('--setnum', default="2")
+parser.add_argument('--numModel', default="1")
+parser.add_argument('--numTemplate', default="1")
 
 args = parser.parse_args()
 

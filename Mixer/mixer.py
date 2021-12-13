@@ -51,7 +51,6 @@ def all_equal(iterable):
     return next(g, True) and not next(g, False)
 
 
-
 colors = [[0, 0, 255, 255],
           [0, 255, 0, 255],
           [255, 0, 0, 255],
@@ -312,7 +311,7 @@ class Mixer:
         if chairID is None:
             partTemplate = self.templateChair.partList[partIdx]
             tempEnc = partTemplate.encoding
-        elif (chairID is not None) & (partIdx>=self.allChairs[chairID].nParts):
+        elif (chairID is not None) & (partIdx >= self.allChairs[chairID].nParts):
             partTemplate = self.templateChair.partList[partIdx]
             tempEnc = partTemplate.encoding
         else:
@@ -340,7 +339,7 @@ class Mixer:
                             legDiff = 1
                             if abs(partTemplate.legNum - partChair.legNum) != 0:
                                 diffLoc = 1
-                        if abs(self.templateChair.numLegs - curChair.numLegs) !=0:
+                        if abs(self.templateChair.numLegs - curChair.numLegs) != 0:
                             diffLegs = 1
                         penalty[len(penalty) - 1] = 0.5 * legDiff + 0.5 * diffLoc + diffLegs * 0.5
 
@@ -487,7 +486,7 @@ class Mixer:
                 time.sleep(0.003)
                 if partIdx == -1:
                     # find closest same type parts to my current part, then choose one randomly
-                    L2_Model_Part, partEncList, tempEnc = self.findListtUsingL2(restI, partType=partType,randOff=False)
+                    L2_Model_Part, partEncList, tempEnc = self.findListtUsingL2(restI, partType=partType, randOff=False)
                     kmm = self.KMM if self.KMM < len(L2_Model_Part) + 1 else len(L2_Model_Part)
                     randIndPart = random.randint(0, kmm - 1)
                     chairChosen = L2_Model_Part[randIndPart][1]
@@ -498,7 +497,7 @@ class Mixer:
                     else:
                         chairid = chairListUse[restI - 1][0]
                     L2_Model_Part, partEncList, tempEnc = self.findListtUsingL2(partIdx, partType=partType,
-                                                                                chairID = chairid,randOff=False)
+                                                                                chairID=chairid, randOff=False)
                     kmm = self.KMM if self.KMM < len(L2_Model_Part) + 1 else len(L2_Model_Part)
                     if kmm == 0:
                         randIndPart = 0
@@ -545,7 +544,7 @@ class Mixer:
                         partArm = self.allChairs[chairChosen].firstArm
                 self.chairListRT.append(chairListUse[nparts][0])
 
-                reg = 100
+                reg = 80
                 sizeTemp = templateCurPart.size
                 sizeChosen = self.allChairs[chairChosen].partList[partChosen].size
                 sizeRatio = (sizeTemp + reg) / (sizeChosen + reg)
@@ -565,6 +564,35 @@ class Mixer:
                 ll.append(list[self.chairListRT[i]])
             self.chairListRT.clear()
 
+            adjTrans = {}
+            # get legs info
+            tempPart = self.templateChair.partList[self.templateChair.firstLeg]
+            myPart = self.allChairs[chairListUse[0][0]].partList[partListUse[0][0]]
+            tempPrev = tempPart.translation
+            partPrev = myPart.translation
+
+            zero = [0, 0, 0]
+            adjTrans[0] = zero
+            adjTrans[1] = zero
+            adjTrans[2] = zero
+            adjTrans[3] = zero
+
+
+            # compare to its own part 1
+            idx = -1
+            for adjI in range(self.templateChair.numLegs-1, numParts-1):
+                idxIn = (numParts-self.templateChair.numLegs) + idx
+                tempPart = self.templateChair.partList[idxIn]
+                myPart = self.allChairs[chairListUse[idxIn][0]].partList[partListUse[idxIn][0]]
+                tempCur = tempPart.translation
+                partCur = myPart.translation
+                diffTemp = tempPrev - tempCur
+                diffCur = partPrev - partCur
+                adjTrans[myPart.type] = (diffCur-diffTemp)*[0.1,0,0]
+                partPrev = partCur
+                tempPrev = tempCur
+                idx = idx - 1
+
             # adjScales = []
             # for adjI in range(self.templateChair.numLegs):
             #     tempPart = self.templateChair.partList[self.templateChair.firstLeg+adjI]
@@ -575,7 +603,7 @@ class Mixer:
             #     scale = sequenceScale[adjI]
             #     adjScales.append(scale-scaleAdj)
             # for adjI in range(self.templateChair.numLegs,numParts):
-            #     scaleAdj = [0,0,0]
+            #     scaleAdj = ((sizeTemp-sizePart)/2*64)
             #     scale = sequenceScale[adjI]
             #     adjScales.append(scale-scaleAdj)
 
@@ -586,7 +614,7 @@ class Mixer:
                 zLatent = torch.unsqueeze(zLatent, 0)
                 idChairs = chairListUse[genI]
                 idParts = partListUse[genI]
-
+                myPart = self.allChairs[idChairs[0]].partList[idParts[0]]
                 # aggregate points from the list
                 if self.mode == "replace":
                     pointsBatch = self.allChairs[idChairs[0]].partList[idParts[0]].batchPoints.cpu().detach().numpy()
@@ -634,10 +662,14 @@ class Mixer:
                 mesh.apply_translation((-32, -32, -32))
                 scale = sequenceScale[genI]
                 mesh.apply_scale(scale)
-                # scale = adjScales[genI]
+                # scale = 0.1 * adjScales[genI]
                 # mesh.apply_scale([scale[0], scale[1], scale[2]])
+
                 translation = sequenceTrans[genI]
                 mesh.apply_translation(translation)
+                transAdj = adjTrans[myPart.type]
+                if myPart.type != 3:
+                    mesh.apply_translation(transAdj)
                 shape_mesh.append(mesh)
             # if self.seqName:
             #     numR = randrange(10000, 100000)

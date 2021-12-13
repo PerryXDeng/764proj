@@ -32,7 +32,7 @@ def score_multiple_models(outdir):
         sVal = sVal.item()
         scorelist.append([f, sVal])
     scorelist.sort(key=operator.itemgetter(1))
-    idx = 0
+    idx = 1
     print(scorelist)
     for k in scorelist:
         f = k[0]
