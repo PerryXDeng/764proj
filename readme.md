@@ -8,6 +8,8 @@ In set2 folder put 37529.h5,37546.h5,39055.h5,40096.h5,41975.h5
 In set3 folder put 2320.h5,35698.h5,37107.h5,37108.h5,37790.h5,39426.h5,39781.h5,40141.h5,40546.h5,43006.h5
 
 TESTING
-To test run main.py. The only change is the dataPath is needed to change for evert test set. 
-the output chairs will be in results/mix. 
+To test run demo.py. The only change is the arguments needed to change for evert test set. 
+the output chairs will be in results/final arranged by order.
+
+
 
