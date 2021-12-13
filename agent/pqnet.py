@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import os
-from outside_code.libmise import MISE
+from mise import MISE
 from networks import get_network
 from util.visualization import partsdf2mesh, partsdf2voxel, affine2bboxes
 
